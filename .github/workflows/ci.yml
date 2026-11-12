@@ -1,0 +1,24 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Unit tests
+        run: npm test
+      - name: Validate levels (published versions are immutable on PRs)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            node tools/validate.mjs --base "origin/${{ github.base_ref }}"
+          else
+            node tools/validate.mjs
+          fi

@@ -1,0 +1,10 @@
+{
+  "name": "playverse",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "validate": "node tools/validate.mjs",
+    "serve": "node tools/serve.mjs"
+  }
+}

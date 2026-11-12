@@ -1,0 +1,79 @@
+// Canvas drawing. Everything is procedural; no image assets.
+import { HALF, starTaken } from './engine.js';
+
+const C = {
+  floor: '#2a3047', floor2: '#2e3550', wall: '#0d0f16', wallEdge: '#454d6e',
+  spike: '#ff5a6a', star: '#ffcc4d', goal: '#36d6b4', portal: '#7c5cff', player: '#f4f1ff', eye: '#12141c',
+};
+
+export function fit(canvas, level, box) {
+  const w = level.tiles[0].length, h = level.tiles.length;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const size = Math.max(8, Math.floor(Math.min(box.width / w, box.height / h)));
+  canvas.style.width = `${size * w}px`;
+  canvas.style.height = `${size * h}px`;
+  canvas.width = Math.round(size * w * dpr);
+  canvas.height = Math.round(size * h * dpr);
+  return size * dpr;
+}
+
+function starPath(ctx, cx, cy, r) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.45 : r;
+    ctx.lineTo(cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+  }
+  ctx.closePath();
+}
+
+export function draw(ctx, g, s, t, extra = {}) {
+  const { tiles } = g.level;
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  for (let y = 0; y < tiles.length; y++) {
+    for (let x = 0; x < tiles[0].length; x++) {
+      const c = tiles[y][x], px = x * s, py = y * s;
+      if (c === '#') {
+        ctx.fillStyle = C.wall; ctx.fillRect(px, py, s, s);
+        ctx.fillStyle = C.wallEdge;
+        if (y + 1 < tiles.length && tiles[y + 1][x] !== '#') ctx.fillRect(px, py + s - s * 0.12, s, s * 0.12);
+        continue;
+      }
+      ctx.fillStyle = (x + y) % 2 ? C.floor : C.floor2; ctx.fillRect(px, py, s, s);
+      if (c === '^') {
+        ctx.fillStyle = C.spike;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(px + (i / 3) * s + s * 0.04, py + s * 0.85);
+          ctx.lineTo(px + ((i + 0.5) / 3) * s, py + s * 0.2);
+          ctx.lineTo(px + ((i + 1) / 3) * s - s * 0.04, py + s * 0.85);
+          ctx.fill();
+        }
+      } else if (c === '*' && !starTaken(g, x, y)) {
+        ctx.fillStyle = C.star;
+        starPath(ctx, px + s / 2, py + s / 2 + Math.sin(t * 3 + x) * s * 0.05, s * 0.36); ctx.fill();
+      } else if (c === 'G') {
+        const q = s / 4;
+        for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+          ctx.fillStyle = (i + j) % 2 ? C.goal : '#e9fffa'; ctx.fillRect(px + i * q, py + j * q, q, q);
+        }
+      }
+    }
+  }
+  for (const p of g.level.portals || []) {
+    const cx = (p.x + 0.5) * s, cy = (p.y + 0.5) * s, pulse = 1 + Math.sin(t * 4 + p.x) * 0.06;
+    ctx.strokeStyle = C.portal; ctx.lineWidth = s * 0.12;
+    ctx.beginPath(); ctx.ellipse(cx, cy, s * 0.42 * pulse, s * 0.46 * pulse, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = 'rgba(124,92,255,.35)'; ctx.fill();
+    if (extra.portalDone?.(p)) { ctx.fillStyle = C.star; starPath(ctx, cx, cy, s * 0.18); ctx.fill(); }
+  }
+  // player
+  const px = g.x * s, py = g.y * s, r = HALF * s, bob = g.started && !g.finished ? Math.sin(t * 18) * s * 0.03 : 0;
+  ctx.fillStyle = 'rgba(0,0,0,.3)';
+  ctx.beginPath(); ctx.ellipse(px, py + r * 0.95, r * 0.9, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = extra.flash ? C.spike : C.player;
+  ctx.beginPath(); ctx.roundRect(px - r, py - r + bob, r * 2, r * 2, r * 0.5); ctx.fill();
+  ctx.fillStyle = C.eye;
+  const ex = g.facing * r * 0.25;
+  ctx.fillRect(px + ex - r * 0.45, py - r * 0.25 + bob, r * 0.22, r * 0.4);
+  ctx.fillRect(px + ex + r * 0.23, py - r * 0.25 + bob, r * 0.22, r * 0.4);
+}

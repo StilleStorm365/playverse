@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Playverse – Play</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="bar">
+    <a class="brand" href="./" id="back" title="Back to the hub (Esc)">← Play<span>verse</span></a>
+    <div class="title" id="title">Loading…</div>
+    <div class="stat">⏱ <b id="time">0.00</b></div>
+    <div class="stat">★ <b id="stars">0/0</b></div>
+  </header>
+  <main class="stage" id="stage">
+    <canvas id="canvas" aria-label="Game area"></canvas>
+    <div class="toast" id="toast" role="status"></div>
+    <div class="hint" id="hint">Arrow keys / WASD or drag to move · R restart · Esc back</div>
+
+    <div class="overlay" id="finish" hidden>
+      <div class="card" role="dialog" aria-labelledby="finish-title">
+        <h2 id="finish-title">Finished!</h2>
+        <div class="big" id="final">0.00 s</div>
+        <p id="breakdown"></p>
+        <p id="best"></p>
+        <div id="board-slot"></div>
+        <div class="row">
+          <button id="retry">Retry (R)</button>
+          <button class="secondary" id="back2">Back to hub</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="error" hidden>
+      <div class="card"><h2>Could not load this level</h2><p id="error-text"></p>
+        <div class="row"><button id="error-back">Back to hub</button></div></div>
+    </div>
+  </main>
+  <script type="module" src="js/play.js"></script>
+</body>
+</html>
