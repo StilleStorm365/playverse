@@ -7,10 +7,10 @@ import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { validateLevel } from '../js/level.js';
+import { validateLevel } from '../public/js/level.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const levelsDir = join(root, 'levels');
+const levelsDir = join(root, 'public', 'levels');
 const args = process.argv.slice(2);
 const baseIdx = args.indexOf('--base');
 const base = baseIdx >= 0 ? args[baseIdx + 1] : null;
@@ -23,7 +23,7 @@ for (const id of readdirSync(levelsDir)) {
   const dir = join(levelsDir, id);
   if (!statSync(dir).isDirectory()) continue;
   for (const file of readdirSync(dir)) {
-    const rel = `levels/${id}/${file}`;
+    const rel = `public/levels/${id}/${file}`;
     const m = /^v(\d+)\.json$/.exec(file);
     if (!m) { problems.push(`${rel}: only v<n>.json files are allowed in a level folder`); continue; }
     const raw = readFileSync(join(dir, file));
@@ -41,20 +41,20 @@ for (const id of readdirSync(levelsDir)) {
 }
 
 const pubPath = join(levelsDir, 'published.json');
-if (!existsSync(pubPath)) problems.push('levels/published.json is missing');
+if (!existsSync(pubPath)) problems.push('public/levels/published.json is missing');
 else {
   let pub;
-  try { pub = JSON.parse(readFileSync(pubPath, 'utf8')); } catch (e) { problems.push(`levels/published.json: invalid JSON (${e.message})`); }
+  try { pub = JSON.parse(readFileSync(pubPath, 'utf8')); } catch (e) { problems.push(`public/levels/published.json: invalid JSON (${e.message})`); }
   if (pub) for (const [id, v] of Object.entries(pub)) {
-    if (!known.get(id)?.has(v)) problems.push(`levels/published.json: ${id} points to v${v}, which does not exist`);
+    if (!known.get(id)?.has(v)) problems.push(`public/levels/published.json: ${id} points to v${v}, which does not exist`);
   }
 }
 
 if (base) {
-  const out = execFileSync('git', ['diff', '--name-status', base, '--', 'levels/'], { cwd: root, encoding: 'utf8' });
+  const out = execFileSync('git', ['diff', '--name-status', base, '--', 'public/levels/'], { cwd: root, encoding: 'utf8' });
   for (const line of out.split('\n').filter(Boolean)) {
     const [status, path] = line.split('\t');
-    if (/^levels\/[^/]+\/v\d+\.json$/.test(path) && status !== 'A') {
+    if (/^public\/levels\/[^/]+\/v\d+\.json$/.test(path) && status !== 'A') {
       problems.push(`${path}: published versions are immutable (status ${status} vs ${base}); add a new version instead`);
     }
   }

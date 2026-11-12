@@ -5,6 +5,12 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "validate": "node tools/validate.mjs",
-    "serve": "node tools/serve.mjs"
+    "serve": "node tools/serve.mjs",
+    "dev": "wrangler pages dev --port 8788",
+    "db:migrate:local": "wrangler d1 migrations apply playverse --local",
+    "db:migrate:remote": "wrangler d1 migrations apply playverse --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.161.0"
   }
 }

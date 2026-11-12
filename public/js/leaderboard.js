@@ -23,7 +23,7 @@ function render(slot, scores, mine) {
   if (!scores.length) { const li = document.createElement('li'); li.textContent = 'No times yet – be the first!'; ol.append(li); }
   scores.forEach((s, i) => {
     const li = document.createElement('li');
-    if (mine && s.id === mine) li.classList.add('me');
+    if (mine && s.nickname === mine) li.classList.add('me');
     const left = document.createElement('span');
     const rank = document.createElement('span'); rank.className = 'rank'; rank.textContent = `${i + 1}`;
     left.append(rank, ' ', s.nickname);           // textContent only: nicknames are untrusted
@@ -58,7 +58,7 @@ export function mountBoard(slot, { levelId, version, timeMs }) {
         const res = await submit({ levelId, version, nickname, timeMs });
         form.remove();
         status.textContent = res.rank ? `Submitted – you are #${res.rank} on v${version}` : 'Submitted.';
-        render(slot, res.scores, res.id);
+        render(slot, res.scores, res.nickname);
       } catch (err) {
         status.textContent = `Could not submit: ${err.message}`; btn.disabled = false;
       }

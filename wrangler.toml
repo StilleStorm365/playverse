@@ -1,0 +1,11 @@
+# Cloudflare Pages project for Playverse. Separate from Little Copenhagen (own project, D1 and tokens).
+name = "playverse"
+pages_build_output_dir = "public"
+compatibility_date = "2026-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "playverse"
+# Placeholder for local development. Replace with the real id after `npx wrangler d1 create playverse`.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"

@@ -1,15 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { validateLevel, minTimeMs, STAR_BONUS_MS } from '../js/level.js';
-import { createGame, step, resultMs, STEP } from '../js/engine.js';
+import { validateLevel, minTimeMs, STAR_BONUS_MS } from '../public/js/level.js';
+import { createGame, step, resultMs, STEP } from '../public/js/engine.js';
 
 const race = (tiles, extra = {}) => ({ id: 'test-level', version: 1, title: 'T', author: 'A', tiles, ...extra });
 
 test('all shipped levels are valid', () => {
-  for (const id of readdirSync('levels').filter((d) => !d.endsWith('.json'))) {
-    for (const f of readdirSync(`levels/${id}`)) {
-      const raw = readFileSync(`levels/${id}/${f}`);
+  for (const id of readdirSync('public/levels').filter((d) => !d.endsWith('.json'))) {
+    for (const f of readdirSync(`public/levels/${id}`)) {
+      const raw = readFileSync(`public/levels/${id}/${f}`);
       const res = validateLevel(JSON.parse(raw), { bytes: raw.length });
       assert.ok(res.ok, `${id}/${f}: ${res.errors.join('; ')}`);
     }
