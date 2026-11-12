@@ -12,22 +12,25 @@ Byg så lidt platform som muligt i første version. Da kun Tommy indsender forsl
 - **(Tommy)** Nyt GitHub-repo, fx `StilleStorm365/playverse`: offentligt eller privat? Pages-projektet `playverse` på den eksisterende Cloudflare-konto, men helt adskilt fra Little Copenhagens projekt, tokens og database. Domæne: `playverse.pages.dev` til at starte med.
 
 ## Repo-struktur
+Opdateret 12/11 kl. 21 efter v1-bygningen (observeret). Hjemmesiden ligger i `public/`, så Pages kun udgiver den mappe og ikke værktøjer eller `node_modules`.
 ```
-/index.html            portal: liste over baner (engelsk)
-/play.html             spillet (canvas 2D, vanilla JS, ingen byggetrin)
-/js/game.js, /js/level.js, /js/leaderboard.js
-/levels/<level-id>/v<n>.json   hver udgivet version, uforanderlig
-/levels/published.json         { "<level-id>": <n>, ... } – den aktive version
-/schema/level.schema.json
-/tools/validate.mjs    skema + løsbarhed + mindstetid
-/functions/api/scores.js        Pages Function
+/public/index.html             hub (Nexus Plaza) + Browse all (engelsk)
+/public/play.html              race-siden (canvas 2D, vanilla JS, ingen byggetrin)
+/public/js/level.js            format, validering, løsbarhed, mindstetid (deles med serveren)
+/public/js/engine.js, render.js, input.js, hub.js, play.js, leaderboard.js, levels.js, store.js
+/public/levels/<level-id>/v<n>.json   hver udgivet version, uforanderlig
+/public/levels/published.json         { "<level-id>": <n>, ... } – den aktive version
+/tools/validate.mjs            skema + løsbarhed + størrelse + uforanderlighed (--base)
+/functions/api/scores.js       Pages Function (GET/POST)
 /migrations/0001_scores.sql
+/test/*.test.mjs, /.github/workflows/ci.yml
 ```
+Der er ingen separat `schema/level.schema.json`. Skemaet håndhæves i koden af `validateLevel` i `public/js/level.js`.
 
 ## Isolering pr. bane
 - En bane er **kun data**: ingen kode, ingen scripts, ingen eksterne URL'er. Spillet indlæser `levels/<id>/v<n>.json` og intet andet fra banen.
 - Versioner er uforanderlige filer. **Udgivelse** = ny `v<n+1>.json` + ændring i `published.json`. **Rollback** = sæt pegepinden tilbage til en tidligere `n` (én linje, én commit). Gamle versioner og deres scorer bevares.
-- Bane-skema (udkast): `id`, `version`, `title`, `width`/`height` (maks. 32×18), `tiles` (strenge med `#` væg, `.` gulv, `^` pigge), `start`, `goal`, `stars` (0–5 felter), `author`. Maks. 8 KB pr. fil.
+- Bane-skema (som bygget): `id`, `version`, `title`, `author`, `type` (`race` eller `hub`), `tiles` (strenge, maks. 32×18, med `#` væg, `.` gulv, `^` pigge, `S` start, `G` mål, `*` stjerne, højst 5) og for hubs `portals` (`{x, y, levelId}`). Ukendte felter afvises. Maks. 8 KB pr. fil.
 
 ## Kontrol (CI, GitHub Actions)
 `tools/validate.mjs` kører på hver PR og blokerer merge, hvis:
