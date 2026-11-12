@@ -65,6 +65,15 @@ export function draw(ctx, g, s, t, extra = {}) {
     ctx.beginPath(); ctx.ellipse(cx, cy, s * 0.42 * pulse, s * 0.46 * pulse, 0, 0, Math.PI * 2); ctx.stroke();
     ctx.fillStyle = 'rgba(124,92,255,.35)'; ctx.fill();
     if (extra.portalDone?.(p)) { ctx.fillStyle = C.star; starPath(ctx, cx, cy, s * 0.18); ctx.fill(); }
+    const label = extra.labels?.(p);
+    if (label) {
+      ctx.font = `600 ${Math.max(10, Math.round(s * 0.34))}px system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+      const w = ctx.measureText(label).width + s * 0.3, ty = cy - s * 0.6;
+      ctx.fillStyle = 'rgba(13,15,22,.8)';
+      ctx.beginPath(); ctx.roundRect(cx - w / 2, ty - s * 0.45, w, s * 0.5, s * 0.12); ctx.fill();
+      ctx.fillStyle = '#eef0f7'; ctx.fillText(label, cx, ty);
+    }
   }
   // player
   const px = g.x * s, py = g.y * s, r = HALF * s, bob = g.started && !g.finished ? Math.sin(t * 18) * s * 0.03 : 0;

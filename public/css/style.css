@@ -6,6 +6,7 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
+body { display: flex; flex-direction: column; }
 a { color: var(--accent-2); }
 button { font: inherit; cursor: pointer; border: 0; border-radius: 10px; padding: 10px 16px; background: var(--accent); color: #fff; font-weight: 600; }
 button.secondary { background: var(--panel-2); color: var(--text); }
@@ -19,7 +20,7 @@ input { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px soli
 .brand { font-weight: 800; letter-spacing: .02em; text-decoration: none; color: var(--text); }
 .brand span { color: var(--accent); }
 
-.stage { position: relative; height: calc(100dvh - 52px); display: grid; place-items: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+.stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; touch-action: none; user-select: none; -webkit-user-select: none; }
 canvas { display: block; image-rendering: pixelated; }
 .overlay { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10, 12, 18, .72); padding: 16px; }
 .overlay[hidden] { display: none; }
@@ -43,3 +44,15 @@ canvas { display: block; image-rendering: pixelated; }
 .levels a { display: block; padding: 16px; background: var(--panel); border-radius: 14px; text-decoration: none; color: var(--text); }
 .levels a:hover { background: var(--panel-2); }
 .levels .meta { color: var(--muted); font-size: .9rem; margin-top: 4px; }
+
+/* hub */
+.plaque { position: absolute; left: 0; right: 0; bottom: 12px; display: flex; justify-content: center; padding: 0 16px; pointer-events: none; }
+.plaque[hidden] { display: none; }
+.plaque .card { pointer-events: auto; padding: 14px 16px; }
+.plaque h2 { font-size: 1.15rem; }
+.plaque p { margin: 2px 0; font-size: .95rem; }
+.card.wide { width: min(640px, 100%); max-height: calc(100dvh - 120px); overflow: auto; }
+.card .head { margin: 0 0 10px; justify-content: space-between; align-items: center; }
+.card .head h2 { margin: 0; }
+#search { width: 100%; }
+#levels { margin-top: 12px; }

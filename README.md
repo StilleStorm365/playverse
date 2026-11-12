@@ -5,8 +5,8 @@ A public browser portal for AI-made 2D/3D minigames, levels and quests. Low budg
 ## Status
 Version 1 in progress: a small 2D level race where each level is a JSON file, a nickname-only leaderboard per level and version, an English UI, a 2D hub with portals, and proposals from the owner only, reviewed as pull requests.
 
-- Done: game engine, 3 levels, level validator, unit tests, play page, level list, CI, leaderboard API (Pages Function + D1, tested locally).
-- Next: 2D hub, then Cloudflare Pages + D1 setup (needs the owner's Cloudflare login).
+- Done: game engine, 3 levels, level validator, unit tests, play page, CI, leaderboard API (Pages Function + D1, tested locally), 2D hub "Nexus Plaza" with portals, plaques, deep links and Browse all.
+- Next: Cloudflare Pages + D1 setup (needs the owner's Cloudflare login), then a first proposal PR and a rollback drill.
 
 ## Run locally
 No build step and no dependencies for the game itself.
@@ -31,7 +31,8 @@ faked within those bounds, which is accepted for v1.
 ## Layout
 ```
 public/                      the static site (Cloudflare Pages output dir)
-  index.html, play.html      pages (vanilla JS modules, canvas 2D)
+  index.html, play.html      hub and race page (vanilla JS modules, canvas 2D)
+  js/hub.js                  hub: portals, plaques, Browse all, deep link #/from/<id>
   js/level.js                level format, validation, minimum-time bound (shared with tools and API)
   js/engine.js               deterministic simulation (fixed 1/120 s step, no DOM)
   js/render.js, js/input.js  drawing and keyboard/touch input
@@ -48,7 +49,7 @@ tools/validate.mjs           CI check: schema, reachability, size, immutability 
   "tiles": ["#####", "#S*G#", "#####"] }
 ```
 `#` wall, `.` floor, `^` spikes (back to start), `S` start, `G` goal, `*` star (−0.5 s). Max 32×18 tiles, 8 KB, 5 stars.
-Hub levels use `"type": "hub"` and a `portals` list of `{x, y, levelId}`.
+Hub levels use `"type": "hub"` and a `portals` list of `{x, y, levelId}`; the published hub (`levels/hub`) may only link to published race levels. Adding a level to the hub = a new hub version with one more portal.
 
 ## Proposing a level change
 1. Branch, then add `public/levels/<id>/v<n+1>.json` (never edit an existing version).

@@ -4,37 +4,44 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Playverse</title>
-  <meta name="description" content="Tiny browser games and levels. Race them, beat the leaderboard.">
+  <meta name="description" content="Tiny browser games and levels. Walk into a portal, race it, beat the leaderboard.">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="bar">
     <a class="brand" href="./">Play<span>verse</span></a>
-    <div class="title"></div>
+    <div class="title" id="title">Nexus Plaza</div>
+    <button class="secondary" id="browse-btn" aria-expanded="false" aria-controls="browse">Browse all</button>
   </header>
-  <div class="wrap">
-    <h1>Levels</h1>
-    <ul class="levels" id="levels"><li>Loading…</li></ul>
-  </div>
-  <script type="module">
-    import { loadPublished, loadLevel } from './js/levels.js';
-    import { getBest } from './js/store.js';
-    const ul = document.getElementById('levels');
-    try {
-      const pub = await loadPublished();
-      const items = await Promise.all(Object.entries(pub).map(async ([id, v]) => {
-        try { const { level, info } = await loadLevel(id, v); return { level, info }; } catch { return null; }
-      }));
-      ul.replaceChildren(...items.filter(Boolean).filter((x) => x.level.type !== 'hub').map(({ level, info }) => {
-        const li = document.createElement('li'), a = document.createElement('a');
-        a.href = `play.html#/w/${level.id}@${level.version}`;
-        const t = document.createElement('div'); t.textContent = level.title; t.style.fontWeight = '700';
-        const best = getBest(level.id, level.version);
-        const m = document.createElement('div'); m.className = 'meta';
-        m.textContent = `by ${level.author} · v${level.version} · ${info.stars} ★` + (best ? ` · best ${(best.timeMs / 1000).toFixed(2)} s` : '');
-        a.append(t, m); li.append(a); return li;
-      }));
-    } catch (e) { ul.textContent = e.message; }
-  </script>
+  <main class="stage" id="stage">
+    <canvas id="canvas" aria-label="Hub: walk into a portal to pick a level"></canvas>
+    <div class="hint" id="hint">Walk into a portal · arrow keys / WASD or drag · Enter to play</div>
+
+    <div class="plaque" id="plaque" hidden>
+      <div class="card">
+        <h2 id="p-title"></h2>
+        <p id="p-meta"></p>
+        <p id="p-best"></p>
+        <p id="p-top"></p>
+        <div class="row"><button id="p-enter">Play (Enter)</button></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="browse" hidden>
+      <div class="card wide" role="dialog" aria-labelledby="browse-title">
+        <div class="row head">
+          <h2 id="browse-title">All levels</h2>
+          <button class="secondary" id="browse-close">Close</button>
+        </div>
+        <input id="search" type="search" placeholder="Search levels" aria-label="Search levels">
+        <ul class="levels" id="levels"></ul>
+      </div>
+    </div>
+
+    <div class="overlay" id="error" hidden>
+      <div class="card"><h2>Could not load the hub</h2><p id="error-text"></p></div>
+    </div>
+  </main>
+  <script type="module" src="js/hub.js"></script>
 </body>
 </html>

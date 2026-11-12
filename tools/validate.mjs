@@ -17,6 +17,8 @@ const base = baseIdx >= 0 ? args[baseIdx + 1] : null;
 
 const problems = [];
 const known = new Map(); // id -> Set(version)
+const types = new Map(); // "id@version" -> "race" | "hub"
+const hubs = [];
 let count = 0;
 
 for (const id of readdirSync(levelsDir)) {
@@ -35,6 +37,8 @@ for (const id of readdirSync(levelsDir)) {
     if (obj.version !== Number(m[1])) problems.push(`${rel}: version ${obj.version} must match file name v${m[1]}`);
     if (!known.has(id)) known.set(id, new Set());
     known.get(id).add(Number(m[1]));
+    types.set(`${id}@${m[1]}`, res.info.type);
+    if (res.ok && res.info.type === 'hub') hubs.push({ rel, id, version: Number(m[1]), portals: obj.portals });
     count++;
     if (res.ok) console.log(`ok  ${rel}  ${res.info.type} ${res.info.width}x${res.info.height}, stars ${res.info.stars}, minTime ${res.info.minTimeMs} ms`);
   }
@@ -47,6 +51,14 @@ else {
   try { pub = JSON.parse(readFileSync(pubPath, 'utf8')); } catch (e) { problems.push(`public/levels/published.json: invalid JSON (${e.message})`); }
   if (pub) for (const [id, v] of Object.entries(pub)) {
     if (!known.get(id)?.has(v)) problems.push(`public/levels/published.json: ${id} points to v${v}, which does not exist`);
+  }
+  // Published hubs may only link to published race levels.
+  if (pub) for (const h of hubs) {
+    if (pub[h.id] !== h.version) continue;
+    for (const p of h.portals) {
+      if (!(p.levelId in pub)) problems.push(`${h.rel}: portal to "${p.levelId}", which is not published`);
+      else if (types.get(`${p.levelId}@${pub[p.levelId]}`) !== 'race') problems.push(`${h.rel}: portal to "${p.levelId}", which is not a race level`);
+    }
   }
 }
 
