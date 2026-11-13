@@ -13,7 +13,7 @@ import { DurableObject } from 'cloudflare:workers';
 import {
   MAX_PLAYERS, MAX_MSG, EMOTE_GAP_MS, CLOSE_FULL, CLOSE_IDLE,
   clampCoord, cleanNick, publicPlayer, countMessage, validEmote, partyJoin, partyLeave, goMessages,
-  isIdle, nextAlarm,
+  isIdle, nextAlarm, snapshot, flushIn,
 } from './protocol.js';
 
 const EMPTY_PARTY = { ids: [], endsAt: 0 };
@@ -40,7 +40,30 @@ export class Room extends DurableObject {
     return new Response(null, { status: 101, webSocket: client });
   }
 
+  // Positions waiting to go out in the next snapshot (see protocol.js), and when the last one went.
+  pending = new Map();
+  lastFlush = 0;
+  flushTimer = null;
+
   sockets() { return this.ctx.getWebSockets().map((ws) => ({ ws, a: ws.deserializeAttachment() })); }
+
+  /** Sends the collected positions as one message per client, at most every SNAPSHOT_MS. */
+  flush() {
+    this.flushTimer = null;
+    const p = snapshot(this.pending);
+    this.pending.clear();
+    this.lastFlush = Date.now();
+    if (p) this.broadcast({ t: 'snap', p });
+  }
+  queueFlush() {
+    if (this.flushTimer) return;
+    const wait = flushIn(this.lastFlush, Date.now());
+    if (!wait) { this.flush(); return; }
+    // waitUntil keeps the room awake for the few milliseconds until the snapshot goes out.
+    this.ctx.waitUntil(new Promise((done) => {
+      this.flushTimer = setTimeout(() => { this.flush(); done(); }, wait);
+    }));
+  }
   send(ws, m) { try { ws.send(JSON.stringify(m)); } catch { /* gone */ } }
   broadcast(m, except) {
     const s = JSON.stringify(m);
@@ -69,7 +92,8 @@ export class Room extends DurableObject {
     if (m.t === 'pos') {
       a.x = clampCoord(m.x); a.y = clampCoord(m.y);
       ws.serializeAttachment(a);
-      this.broadcast({ t: 'pos', id: a.id, x: a.x, y: a.y }, ws);
+      this.pending.set(a.id, { x: a.x, y: a.y });
+      this.queueFlush();
       return;
     }
     if (m.t === 'nick') { a.nick = cleanNick(m.nick); ws.serializeAttachment(a); this.broadcast({ t: 'nick', id: a.id, nick: a.nick }); return; }
@@ -87,6 +111,7 @@ export class Room extends DurableObject {
 
   async webSocketClose(ws, code) {
     const a = ws.deserializeAttachment();
+    if (a) this.pending.delete(a.id);
     try { ws.close(code === 1005 ? 1000 : code, 'bye'); } catch { /* already closed */ }
     if (a?.nick) this.broadcast({ t: 'leave', id: a.id }, ws);
     if (a) await this.leaveParty(a.id);

@@ -36,7 +36,7 @@ export function connectPresence({ nick, pos, onEvent }) {
         for (const p of m.players) peers.set(p.id, { ...p, rx: p.x, ry: p.y });
         onEvent({ t: 'party', ...m.party }); onEvent({ t: 'online' });
       } else if (m.t === 'join') peers.set(m.id, { ...m, rx: m.x, ry: m.y });
-      else if (m.t === 'pos') { const p = peers.get(m.id); if (p) { p.x = m.x; p.y = m.y; } }
+      else if (m.t === 'snap') { for (const [pid, x, y] of m.p) { const p = peers.get(pid); if (p) { p.x = x; p.y = y; } } }
       else if (m.t === 'nick') { const p = peers.get(m.id); if (p) p.nick = m.nick; }
       else if (m.t === 'leave') peers.delete(m.id);
       else if (m.t === 'emote') { const p = m.id === id ? self : peers.get(m.id); if (p) { p.emote = m.e; p.emoteAt = performance.now(); } }

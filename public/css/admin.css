@@ -1,0 +1,14 @@
+/* Moderation page only. Kept out of the HTML so the site can forbid inline styles. */
+body { display: block; }
+table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--panel-2); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+td .url { color: var(--muted); word-break: break-all; font-size: .85rem; }
+tr.off td { opacity: .55; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--panel-2); font-size: .8rem; }
+.tag.bad { background: var(--danger); color: #fff; }
+td button { padding: 6px 10px; font-size: .85rem; margin: 0 4px 4px 0; }
+.table-wrap { overflow-x: auto; }
+form.login { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+form.login[hidden] { display: none; }
+form.login input { flex: 1; min-width: 200px; }
