@@ -11,7 +11,7 @@ export const EMOTE_GAP_MS = 1000;
 export const MAX_COORD = 64;       // tiles; the biggest level is far smaller
 export const CLOSE_FULL = 4001;    // close code the client shows as "the plaza is full"
 export const CLOSE_IDLE = 4002;    // dropped as a ghost: nothing heard for IDLE_MS
-export const IDLE_MS = 12 * 60 * 1000;   // the client pings every 4 min while its tab is visible
+export const IDLE_MS = 12 * 60 * 1000;   // the client pings every 25 s while its tab is visible
 export const SWEEP_MS = 5 * 60 * 1000;   // how often we look for ghosts
 export const SNAPSHOT_MS = 100;    // positions go out as one snapshot at most this often
 

@@ -112,7 +112,10 @@ inside the game depends on the game (games with one shared world, like fly.piete
 - The plaque says the portal was built by a player and that you leave Playverse.
 - Moderation: `/admin.html` (owner only, `ADMIN_TOKEN`) lists every portal with its reports and can
   hide, unhide or delete it. `GET/POST /api/admin` with `Authorization: Bearer <token>`.
-  The page also shows how many are in the plaza right now (`GET /api/room?count=1`).
+  The page also shows how many are in the plaza right now (`GET /api/room?count=1`), and "Check links"
+  (`POST /api/admin {action:"check"}`) fetches every linked page once and reports what came back, so a
+  portal to a game that has disappeared can be found without clicking through them all. Nothing is
+  hidden automatically: a site can be down for a minute without deserving to lose its portal.
 
 ## Headers
 `public/_headers` ships a content security policy (own scripts and styles only, no inline code, no
