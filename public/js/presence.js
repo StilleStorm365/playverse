@@ -12,20 +12,37 @@
 const CLOSE_FULL = 4001;         // the room's own close code: MAX_PLAYERS reached
 const HIDDEN_GRACE_MS = 60_000;  // switching tabs for a moment should not make you vanish
 const PING_MS = 25_000;          // comfortably under the ~60 s idle limit measured above
+const CONNECT_MS = 10_000;       // a handshake that hangs this long is not coming back
+
+/** What the bar says about the plaza. Pure, so it can be tested without a browser. */
+export function plazaStatus(state, count) {
+  if (state === 'online') return { count: `${count} online`, conn: '' };
+  if (state === 'offline') return { count: '', conn: 'offline – trying again' };
+  if (state === 'connecting') return { count: '', conn: 'connecting…' };
+  return { count: '', conn: '' };   // away: the tab is hidden, nobody is reading this
+}
 
 export function connectPresence({ nick, pos, onEvent }) {
   const peers = new Map();
   const self = { emote: null, emoteAt: 0 };   // our own emote, echoed back by the server
   let ws = null, id = null, retry = 1000, lastSent = 0, lx = null, ly = null;
-  let away = false, hideTimer = null, pingTimer = null, reopenTimer = null;
+  let away = false, hideTimer = null, pingTimer = null, reopenTimer = null, connectTimer = null, failed = false;
   const send = (m) => { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); };
   const reopen = (ms) => { clearTimeout(reopenTimer); reopenTimer = setTimeout(() => { if (!away) open(); }, ms); };
 
   function open() {
-    if (away || ws?.readyState === 0 || ws?.readyState === 1) return;
-    try { ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/room`); } catch { return; }
+    if (away || ws?.readyState === 1) return;
+    // An attempt still in flight: look again shortly. Returning without one left the client
+    // stuck for good if a handshake hung (measured 14/11: it never came back by itself).
+    if (ws?.readyState === 0) { reopen(2000); return; }
+    try { ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/room`); }
+    catch { failed = true; onEvent({ t: 'offline' }); reopen(retry); retry = Math.min(retry * 2, 20000); return; }
+    // If the handshake hangs, close it ourselves; onclose then schedules the next try.
+    clearTimeout(connectTimer);
+    connectTimer = setTimeout(() => { if (ws?.readyState === 0) { try { ws.close(); } catch { /* already gone */ } } }, CONNECT_MS);
     ws.onopen = () => {
-      retry = 1000; const p = pos(); lx = p.x; ly = p.y;
+      clearTimeout(connectTimer);
+      retry = 1000; failed = false; const p = pos(); lx = p.x; ly = p.y;
       send({ t: 'hi', nick: nick(), x: p.x, y: p.y });
       clearInterval(pingTimer); pingTimer = setInterval(() => send({ t: 'ping' }), PING_MS);
     };
@@ -43,9 +60,9 @@ export function connectPresence({ nick, pos, onEvent }) {
       else onEvent(m);
     };
     ws.onclose = (e) => {
-      const was = id !== null; id = null; peers.clear();
-      clearInterval(pingTimer);
-      if (was) onEvent({ t: 'offline' });
+      id = null; peers.clear(); failed = true;
+      clearInterval(pingTimer); clearTimeout(connectTimer);
+      onEvent({ t: 'offline' });   // also when we never got in: the player should be told either way
       if (e.code === CLOSE_FULL) { onEvent({ t: 'full' }); retry = 15000; }
       reopen(retry); retry = Math.min(retry * 2, 20000);
     };
@@ -65,6 +82,8 @@ export function connectPresence({ nick, pos, onEvent }) {
   return {
     peers, self, send,
     get online() { return id !== null; },
+    /** 'online' | 'connecting' | 'offline' (an attempt has failed) | 'away' (hidden tab). */
+    get state() { return id !== null ? 'online' : away ? 'away' : failed ? 'offline' : 'connecting'; },
     get id() { return id; },
     /** Call every frame: sends our position at most 10 times a second, and only when it changed. */
     tick(now, x, y, dt) {
