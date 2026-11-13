@@ -23,6 +23,12 @@ npm run db:migrate:local # create the local D1 scores table
 npm run dev              # site + /api/* on http://localhost:8788
 npm run dev:room         # (second terminal) the presence Worker, so the hub shows other players
 ```
+```bash
+npm run smoke                                      # check a running site end to end (local by default)
+npm run smoke -- https://playverse-2kf.pages.dev   # ...or the published one
+```
+`tools/smoke.mjs` is read-only: pages, assets, both APIs, the admin lock and a real WebSocket
+welcome. Run it after every deploy.
 Without `dev:room` the hub still works, just alone (the WebSocket to `/api/room` fails and retries).
 
 ## Deploy
@@ -72,6 +78,10 @@ nickname changes, emotes and the duo queue; max 40 players. All client messages 
 and rate limited. The rules are pure functions in `room/src/protocol.js`, covered by `test/room.test.mjs`;
 `room/src/index.js` only holds the sockets and storage. A full plaza closes the socket with code 4001,
 so the hub can say so instead of retrying silently.
+
+The duo list is seeded in `migrations/0004_seed_games.sql` with multiplayer jam games taken from two
+public Vibe Jam catalogues and fetched once to check they answered. They are other people's sites:
+the owner can remove any of them from `/admin.html`, and players can report them.
 
 **Duo Vibe Jam portal.** The first player to press Enter in the Vibe Jam portal opens a 4 s window,
 and everyone else who enters joins. When it closes: 2+ players get the same random seed and each
