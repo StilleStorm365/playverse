@@ -90,6 +90,7 @@ inside the game depends on the game (games with one shared world, like fly.piete
 
 ## Social
 - Emotes: keys 1-4 or the buttons top left (👋 ❤️ 😂 🎉), shown above your figure for everyone (max 1 per second).
+- Browse all: one searchable list of community portals, the duo game list and the race levels (the keyboard and screen-reader way in).
 - Invite: shares the plaza link (share sheet on phones, clipboard elsewhere). Link previews use `og.png`.
 - On small screens the hub keeps tiles at least 30 px and the camera follows you.
 

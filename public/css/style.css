@@ -72,3 +72,6 @@ canvas { display: block; image-rendering: pixelated; }
 .emote { padding: 4px 8px; font-size: 1.15rem; line-height: 1.2; background: var(--panel-2); border-radius: 999px; }
 @media (max-width: 520px) { .bar { gap: 8px; padding: 8px 10px; } .bar .title { font-size: .95rem; } .bar #invite-btn { padding: 8px 10px; } }
 .emotes[hidden] { display: none; }
+.levels .group { grid-column: 1 / -1; color: var(--muted); font-weight: 700; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; margin-top: 6px; }
+.card .levels a { background: var(--panel-2); }
+.card .levels a:hover { background: #30364d; }
