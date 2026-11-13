@@ -5,7 +5,7 @@ A public browser portal for AI-made 2D/3D minigames, levels and quests. Low budg
 ## Status
 Version 1 in progress: a small 2D level race where each level is a JSON file, a nickname-only leaderboard per level and version, an English UI, a 2D hub with portals, and proposals from the owner only, reviewed as pull requests.
 
-- Done: game engine, 3 levels, level validator, unit tests, play page, CI, leaderboard API (Pages Function + D1, tested locally), 2D hub "Nexus Plaza" with portals, plaques, deep links and Browse all, first proposal PR (Switchback v2) and a rollback drill, ghosts (input replays, verified on the server).
+- Done: game engine, 3 levels, level validator, unit tests, play page, CI, leaderboard API (Pages Function + D1, tested locally), 2D hub "Nexus Plaza" with portals, plaques, deep links and Browse all, first proposal PR (Switchback v2) and a rollback drill, ghosts (input replays, verified on the server), Vibe Jam webring portals in the hub.
 - Next: Cloudflare Pages + D1 setup (on hold until the owner says go).
 
 ## Run locally
@@ -38,6 +38,18 @@ run-length encoded: `{"v":1,"runs":[[steps, qx, qy], ...]}` with `qx, qy` in −
 The race page shows your own best run (stored on this device) and the record run (from the
 server) as see-through runners that start when you start. `G` toggles them.
 
+## Webring portals (Vibe Jam)
+The hub (v2) has a teal **Vibe Jam ↗** portal. Entering it sends the player to
+`https://vibejam.com/portal/2026` with `portal=true`, `username` (your nickname, if set), `color`,
+`speed` and `ref` (this site), following the [Cursor Vibe Jam 2026 portal guide](https://vibejam.com/2026#portals).
+Players who arrive with `?portal=true` land in the hub at once (no start screen). If `ref` is a
+valid http(s) URL or host, a teal return portal appears next to the start and sends them back with
+the parameters they came with. A valid `username` becomes the nickname if none is set. All incoming
+parameters are untrusted: unknown ones are dropped, `ref` must be http(s), and nothing is put into
+HTML. Hub portals are `{x, y, levelId}` or `{x, y, webring: "vibejam-2026"}`; the URL itself lives in
+`js/webring.js`, not in level data. Unlike the jam sample, entering a portal shows a plaque and you
+press Enter, the same as the level portals. The jam's widget script is not included (it was only required for entries).
+
 ## Layout
 ```
 public/                      the static site (Cloudflare Pages output dir)
@@ -45,6 +57,7 @@ public/                      the static site (Cloudflare Pages output dir)
   js/hub.js                  hub: portals, plaques, Browse all, deep link #/from/<id>
   js/level.js                level format, validation, minimum-time bound (shared with tools and API)
   js/engine.js               deterministic simulation (fixed 1/120 s step, no DOM)
+  js/webring.js              Vibe Jam portal protocol: exit URL, arrival parsing, return URL
   js/replay.js               input recording, replay check and simulation, ghost frames (shared with the API)
   js/render.js, js/input.js  drawing and keyboard/touch input
   levels/<id>/v<n>.json      level versions – immutable once published

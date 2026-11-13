@@ -3,8 +3,9 @@ import { createGame, step, STEP } from './engine.js';
 import { fit, draw } from './render.js';
 import { createInput } from './input.js';
 import { loadPublished, loadLevel } from './levels.js';
-import { getBest } from './store.js';
+import { getBest, getNickname, setNickname } from './store.js';
 import { fetchTop } from './leaderboard.js';
+import { RINGS, parseArrival, exitUrl, returnUrl } from './webring.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('canvas'), ctx = canvas.getContext('2d'), stage = $('stage');
@@ -26,29 +27,63 @@ async function main() {
   await Promise.all(Object.entries(pub).filter(([id]) => id !== 'hub').map(async ([id, v]) => {
     try { const { level, info } = await loadLevel(id, v); if (level.type === 'race') levels.set(id, { level, info }); } catch { /* skip broken */ }
   }));
-  const portals = hub.portals.filter((p) => levels.has(p.levelId));
+  const portals = hub.portals.filter((p) => (p.webring ? RINGS[p.webring] : levels.has(p.levelId)));
+
+  // Arriving through a webring portal (?portal=true): no start screen, and if we know where the
+  // player came from, a return portal right next to the start.
+  const selfUrl = location.origin + location.pathname;
+  const arrival = parseArrival(location.search);
+  if (arrival) {
+    if (arrival.nickname && !getNickname()) setNickname(arrival.nickname);
+    const s = hub.tiles.flatMap((row, y) => [...row].map((c, x) => (c === 'S' ? { x, y } : null))).find(Boolean);
+    const spot = arrival.ref && [[0, -1], [-1, 0], [1, 0], [0, 1]]
+      .map(([dx, dy]) => ({ x: s.x + dx, y: s.y + dy }))
+      .find((q) => hub.tiles[q.y]?.[q.x] === '.' && !portals.some((p) => p.x === q.x && p.y === q.y));
+    if (spot) portals.push({ ...spot, returnTo: true });
+    history.replaceState(null, '', location.pathname);
+  }
   const hubLevel = { ...hub, portals };
   const tops = new Map(); // levelId -> top score or null
 
   // Spawn in front of the portal we came back from (deep link "#/from/<id>"), else at S.
   const from = /^#\/from\/([a-z0-9-]+)$/.exec(location.hash)?.[1];
-  const back = portals.find((p) => p.levelId === from);
+  const back = from ? portals.find((p) => p.levelId === from) : null;
   const below = back && hub.tiles[back.y + 1]?.[back.x] === '.' ? { x: back.x, y: back.y + 1 } : null;
   const g = createGame(hubLevel, below || undefined);
   if (from) history.replaceState(null, '', location.pathname);
 
   const input = createInput(stage);
   let scale, acc = 0, last = performance.now(), current = null;
-  const labels = (p) => levels.get(p.levelId)?.level.title;
+  const labels = (p) => (p.returnTo ? `← ${arrival.ref.hostname}` : p.webring ? `${RINGS[p.webring].name} ↗` : levels.get(p.levelId)?.level.title);
   const portalDone = (p) => { const l = levels.get(p.levelId)?.level; return l && getBest(l.id, l.version); };
 
   function resize() { scale = fit(canvas, hubLevel, { width: stage.clientWidth - 16, height: stage.clientHeight - 48 }); }
-  const enter = () => { if (current) location.href = `play.html#/w/${current.level.id}@${current.level.version}`; };
+  const enter = () => {
+    if (!current) return;
+    const nickname = getNickname() || undefined;
+    if (current.ring) location.href = exitUrl(current.ring, { selfUrl, nickname, arrival });
+    else if (current.back) location.href = returnUrl(arrival, { selfUrl, nickname });
+    else location.href = `play.html#/w/${current.level.id}@${current.level.version}`;
+  };
+
+  // Plaque for a webring exit or the return portal: says clearly that you leave Playverse.
+  function showOutPlaque(p) {
+    current = p.webring ? { ring: p.webring } : { back: true };
+    const host = p.returnTo ? arrival.ref.hostname : new URL(RINGS[p.webring].url).hostname;
+    $('p-title').textContent = p.returnTo ? `Back to ${host}` : `${RINGS[p.webring].name} webring`;
+    $('p-meta').textContent = p.returnTo ? 'Return to the game you came from.' : RINGS[p.webring].blurb;
+    $('p-best').textContent = `You leave Playverse for ${host}.`;
+    $('p-top').textContent = '';
+    $('p-enter').textContent = 'Go (Enter)';
+    $('plaque').hidden = false;
+  }
 
   function showPlaque(p) {
+    if (p && (p.webring || p.returnTo)) return showOutPlaque(p);
     current = p ? levels.get(p.levelId) : null;
     $('plaque').hidden = !current;
     if (!current) return;
+    $('p-enter').textContent = 'Play (Enter)';
     const { level, info } = current;
     $('p-title').textContent = level.title;
     $('p-meta').textContent = `by ${level.author} · v${level.version} · ${info.stars} ★`;

@@ -61,9 +61,10 @@ export function draw(ctx, g, s, t, extra = {}) {
   }
   for (const p of g.level.portals || []) {
     const cx = (p.x + 0.5) * s, cy = (p.y + 0.5) * s, pulse = 1 + Math.sin(t * 4 + p.x) * 0.06;
-    ctx.strokeStyle = C.portal; ctx.lineWidth = s * 0.12;
+    const out = p.webring || p.returnTo;   // leads out of Playverse: teal instead of violet
+    ctx.strokeStyle = out ? C.goal : C.portal; ctx.lineWidth = s * 0.12;
     ctx.beginPath(); ctx.ellipse(cx, cy, s * 0.42 * pulse, s * 0.46 * pulse, 0, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = 'rgba(124,92,255,.35)'; ctx.fill();
+    ctx.fillStyle = out ? 'rgba(54,214,180,.3)' : 'rgba(124,92,255,.35)'; ctx.fill();
     if (extra.portalDone?.(p)) { ctx.fillStyle = C.star; starPath(ctx, cx, cy, s * 0.18); ctx.fill(); }
     const label = extra.labels?.(p);
     if (label) {

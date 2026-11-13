@@ -5,6 +5,8 @@ export const LIMITS = { maxWidth: 32, maxHeight: 18, minSize: 3, maxBytes: 8192,
 export const SPEED = 5;              // tiles per second (must match engine.js)
 export const STAR_BONUS_MS = 500;    // each star subtracts this from the time
 const TILE_CHARS = new Set(['#', '.', '^', 'S', 'G', '*']);
+// Webrings a hub portal may lead out to (the URLs live in js/webring.js, not in level data).
+export const WEBRINGS = new Set(['vibejam-2026']);
 const KEYS = new Set(['id', 'version', 'title', 'author', 'type', 'tiles', 'portals']);
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,31}$/;
 
@@ -131,10 +133,13 @@ export function validateLevel(obj, { bytes } = {}) {
   } else {
     const seen = new Set();
     obj.portals.forEach((p, i) => {
-      if (!p || typeof p !== 'object' || !Number.isInteger(p.x) || !Number.isInteger(p.y) || typeof p.levelId !== 'string' || !ID_RE.test(p.levelId)) {
-        err(`portal ${i} must be {x, y, levelId}`); return;
+      // A portal leads either to a level ({x, y, levelId}) or out to a known webring ({x, y, webring}).
+      const toLevel = typeof p?.levelId === 'string' && ID_RE.test(p.levelId);
+      const toRing = typeof p?.webring === 'string' && WEBRINGS.has(p.webring);
+      if (!p || typeof p !== 'object' || !Number.isInteger(p.x) || !Number.isInteger(p.y) || toLevel === toRing) {
+        err(`portal ${i} must be {x, y, levelId} or {x, y, webring: ${[...WEBRINGS].map((w) => `"${w}"`).join(' | ')}}`); return;
       }
-      for (const k of Object.keys(p)) if (k !== 'x' && k !== 'y' && k !== 'levelId') err(`portal ${i} has unknown field "${k}"`);
+      for (const k of Object.keys(p)) if (k !== 'x' && k !== 'y' && k !== (toLevel ? 'levelId' : 'webring')) err(`portal ${i} has unknown field "${k}"`);
       if (p.x < 0 || p.y < 0 || p.x >= width || p.y >= t.length || t[p.y][p.x] !== '.') { err(`portal ${i} must sit on a floor tile`); return; }
       if (!canReach(p)) err(`portal ${i} cannot be reached`);
       const k = `${p.x},${p.y}`;
