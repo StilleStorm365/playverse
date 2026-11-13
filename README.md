@@ -106,6 +106,15 @@ running is visible rather than silent — a closed laptop or a
 crashed tab should not hold one of the 40 places. The same alarm runs the duo window, so an empty
 plaza sets no alarm at all.
 
+**Saying so, and getting back in.** The bar always carries the plaza state: the player count when we
+are in, `offline - trying again` when we are not, with the reason as a tooltip, and the Vibe Jam
+plaque says you go in alone. Before 2026-11-14 an unreachable room looked exactly like an empty one
+(the count simply vanished), and on a phone the count was hidden with the title, so the small-screen
+rules are now scoped to the hub. The reconnect loop gives up on a handshake that hangs after 10 s
+and looks again in 2 s while one is in flight: without that the client could sit on a socket stuck
+in CONNECTING for good - measured, the hub was still alone 40 s after the room answered again, and
+8 s after the fix. `test/presence.test.mjs` drives the loop with a fake socket and clock.
+
 The duo list is seeded in `migrations/0004_seed_games.sql` with multiplayer jam games taken from two
 public Vibe Jam catalogues and fetched once to check they answered. They are other people's sites:
 the owner can remove any of them from `/admin.html`, and players can report them.
