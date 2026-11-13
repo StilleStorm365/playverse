@@ -1,5 +1,7 @@
 // Hub presence client: a WebSocket to /api/room. Other players are kept in `peers` and drawn
 // with a little smoothing. Reconnects with backoff; if the room is unavailable the hub still works solo.
+const CLOSE_FULL = 4001;   // the room's own close code: MAX_PLAYERS reached
+
 export function connectPresence({ nick, pos, onEvent }) {
   const peers = new Map();
   const self = { emote: null, emoteAt: 0 };   // our own emote, echoed back by the server
@@ -22,9 +24,10 @@ export function connectPresence({ nick, pos, onEvent }) {
       else if (m.t === 'emote') { const p = m.id === id ? self : peers.get(m.id); if (p) { p.emote = m.e; p.emoteAt = performance.now(); } }
       else onEvent(m);
     };
-    ws.onclose = () => {
+    ws.onclose = (e) => {
       const was = id !== null; id = null; peers.clear();
       if (was) onEvent({ t: 'offline' });
+      if (e.code === CLOSE_FULL) { onEvent({ t: 'full' }); retry = 15000; }
       setTimeout(open, retry); retry = Math.min(retry * 2, 20000);
     };
   }

@@ -15,6 +15,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#12141c">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -55,6 +56,18 @@
         <input id="search" type="search" placeholder="Search portals, games and levels" aria-label="Search portals, games and levels">
         <ul class="levels" id="levels"></ul>
       </div>
+    </div>
+
+    <div class="overlay" id="welcome" hidden>
+      <form class="card" id="welcome-form" role="dialog" aria-labelledby="welcome-title">
+        <h2 id="welcome-title">Welcome to Nexus Plaza</h2>
+        <p>A small shared square. Everyone here right now is walking around with you.</p>
+        <p><b>Walk</b> with the arrow keys, WASD or by dragging.</p>
+        <p><b>The teal portal</b> throws you into a random game from Vibe Jam. Step in together with a friend and you both land in the same multiplayer game.</p>
+        <p><b>The + spots</b> are free. Stand on one to build a portal to your own game or page.</p>
+        <label class="field">Your name (others see it above your figure) <input id="w-nick" maxlength="16" placeholder="guest" autocomplete="nickname"></label>
+        <div class="row"><button id="w-go" type="submit">Let's go</button></div>
+      </form>
     </div>
 
     <div class="overlay" id="build" hidden>
