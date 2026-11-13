@@ -98,3 +98,15 @@ export function flushIn(lastFlush, now) {
   const due = lastFlush + SNAPSHOT_MS - now;
   return due > 0 ? due : 0;
 }
+
+/**
+ * Whether to write a new alarm. Measured on the published room: rescheduling on every arrival
+ * pushed the sweep five minutes out each time, and with someone connecting every minute it never
+ * fired once (sweeps: 0 after half an hour). So an alarm that is already due sooner is left alone.
+ */
+export function shouldSetAlarm(current, want, now) {
+  if (want === null || want === undefined) return false;   // nothing to wake up for
+  if (current === null || current === undefined) return true;
+  if (current <= now) return true;                         // overdue and still here: arm it again
+  return want < current;                                   // only ever bring it forward
+}
