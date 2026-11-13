@@ -286,22 +286,42 @@ async function main() {
   addEventListener('resize', resize);
   addEventListener('pageshow', (e) => { if (e.persisted) leaving = false; });
 
-  // ---- Browse all: the accessible, searchable index of every race level ----
+  // ---- Browse all: the accessible, searchable index of everything you can walk to ----
+  // Community portals, the duo game list and the race levels, as plain links.
+  function card(title, meta, href, external) {
+    const li = document.createElement('li'), a = document.createElement('a');
+    a.href = href;
+    if (external) a.rel = 'noopener noreferrer';
+    const t = document.createElement('div'); t.textContent = title; t.style.fontWeight = '700';
+    const m = document.createElement('div'); m.className = 'meta'; m.textContent = meta;
+    a.append(t, m); li.append(a); return li;
+  }
+  function heading(text) { const li = document.createElement('li'); li.className = 'group'; li.textContent = text; return li; }
   function renderList(q = '') {
     const needle = q.trim().toLowerCase();
-    const list = [...levels.values()]
-      .filter(({ level }) => !needle || level.title.toLowerCase().includes(needle) || level.author.toLowerCase().includes(needle))
-      .sort((a, b) => a.level.title.localeCompare(b.level.title));
-    $('levels').replaceChildren(...list.map(({ level, info }) => {
-      const li = document.createElement('li'), a = document.createElement('a');
-      a.href = `play.html#/w/${level.id}@${level.version}`;
-      const t = document.createElement('div'); t.textContent = level.title; t.style.fontWeight = '700';
-      const best = getBest(level.id, level.version);
-      const m = document.createElement('div'); m.className = 'meta';
-      m.textContent = `by ${level.author} · v${level.version} · ${info.stars} ★` + (best ? ` · best ${fmt(best.timeMs)} s` : '');
-      a.append(t, m); li.append(a); return li;
-    }));
-    if (!list.length) { const li = document.createElement('li'); li.textContent = 'No levels match.'; $('levels').append(li); }
+    const has = (...xs) => !needle || xs.some((x) => String(x).toLowerCase().includes(needle));
+    const byTitle = (a, b) => a.title.localeCompare(b.title);
+    const portals = items.filter((it) => it.kind === 'portal' && has(it.title, it.nickname, hostOf(it.url))).sort(byTitle);
+    const games = items.filter((it) => it.kind === 'jam' && has(it.title, it.nickname, hostOf(it.url))).sort(byTitle);
+    const races = [...levels.values()].filter(({ level }) => has(level.title, level.author)).sort((a, b) => a.level.title.localeCompare(b.level.title));
+    const out = [];
+    if (portals.length) {
+      out.push(heading('Portals in the plaza'));
+      for (const it of portals) out.push(card(it.title, `by ${it.nickname} · ${hostOf(it.url)}${it.multiplayer ? ' · multiplayer' : ''}`, it.url, true));
+    }
+    if (games.length) {
+      out.push(heading('Multiplayer games (duo Vibe Jam list)'));
+      for (const it of games) out.push(card(it.title, `added by ${it.nickname} · ${hostOf(it.url)}`, it.url, true));
+    }
+    if (races.length) {
+      out.push(heading('Race levels'));
+      for (const { level, info } of races) {
+        const best = getBest(level.id, level.version);
+        out.push(card(level.title, `by ${level.author} · v${level.version} · ${info.stars} ★` + (best ? ` · best ${fmt(best.timeMs)} s` : ''), `play.html#/w/${level.id}@${level.version}`));
+      }
+    }
+    if (!out.length) { const li = document.createElement('li'); li.textContent = 'Nothing matches.'; out.push(li); }
+    $('levels').replaceChildren(...out);
   }
   function toggleBrowse(open = $('browse').hidden) {
     $('browse').hidden = !open;
