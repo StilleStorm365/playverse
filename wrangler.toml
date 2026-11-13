@@ -6,6 +6,6 @@ compatibility_date = "2026-11-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "playverse"
-# Placeholder for local development. Replace with the real id after `npx wrangler d1 create playverse`.
-database_id = "00000000-0000-0000-0000-000000000000"
+# Remote D1 created 2026-11-13 (region WEUR). The id is not a secret.
+database_id = "214f2f74-8e65-4a73-81f7-8404b54f038b"
 migrations_dir = "migrations"
