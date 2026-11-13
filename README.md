@@ -31,6 +31,13 @@ npm run smoke -- https://playverse-2kf.pages.dev   # ...or the published one
 welcome. Run it after every deploy.
 Without `dev:room` the hub still works, just alone (the WebSocket to `/api/room` fails and retries).
 
+## Backup
+```bash
+npm run backup            # the published database -> backups/playverse-remote-<date>.sql
+npm run backup -- local   # the one on this machine
+```
+Scores and community portals live only in D1. `backups/` is git-ignored, so keep a copy elsewhere.
+
 ## Deploy
 ```bash
 npm run db:migrate:remote   # D1 schema
