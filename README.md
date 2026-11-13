@@ -83,7 +83,11 @@ so the hub can say so instead of retrying silently.
 disconnects, then reconnects when the tab is looked at again. While visible it pings every 25 s —
 measured 2026-11-13, a socket with no traffic for about a minute is dropped with code 1006 somewhere
 in between, so without the ping a player standing still would be thrown out and reconnected every
-minute. The room sweeps every 5 minutes and closes anything silent for 12 minutes (code 4002) — a closed laptop or a
+minute. The room sweeps every 5 minutes and gives up on anything silent for 12 minutes (code 4002,
+and the connection is marked `gone` rather than trusted to disappear: closing a socket whose other
+end is already unreachable does not always take it off the room's list). `GET /api/room?count=1`
+reports `sockets`, `lastSweep` and `sweeps` alongside the player count, so a sweep that stops
+running is visible rather than silent — a closed laptop or a
 crashed tab should not hold one of the 40 places. The same alarm runs the duo window, so an empty
 plaza sets no alarm at all.
 

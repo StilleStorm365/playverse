@@ -102,7 +102,8 @@ await check('room count', async () => {
   expect(r.ok, `status ${r.status}`);
   const d = await r.json();
   expect(Number.isInteger(d.players) && Number.isInteger(d.max), 'no player count');
-  return `${d.players} of ${d.max} in the plaza`;
+  const swept = d.lastSweep ? `last sweep ${Math.round((Date.now() - d.lastSweep) / 60000)} min ago, ${d.sweeps} in all` : 'no sweep yet';
+  return `${d.players} of ${d.max} in the plaza (${d.sockets} sockets, ${swept})`;
 });
 
 await check('room refuses a foreign page', async () => {
