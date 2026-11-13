@@ -110,6 +110,12 @@ inside the game depends on the game (games with one shared world, like fly.piete
   hide, unhide or delete it. `GET/POST /api/admin` with `Authorization: Bearer <token>`.
   The page also shows how many are in the plaza right now (`GET /api/room?count=1`).
 
+## Headers
+`public/_headers` ships a content security policy (own scripts and styles only, no inline code, no
+framing), `nosniff`, a referrer policy and short caches. Walking into a portal is a plain navigation,
+which the policy does not restrict, so players can still leave for a game. `npm run smoke` fails if
+the policy goes missing. The admin page's styles live in `css/admin.css` for the same reason.
+
 ## Social
 - Emotes: keys 1-4 or the buttons top left (👋 ❤️ 😂 🎉), shown above your figure for everyone (max 1 per second).
 - Browse all: one searchable list of community portals, the duo game list and the race levels (the keyboard and screen-reader way in).

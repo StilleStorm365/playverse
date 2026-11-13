@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   clampCoord, cleanNick, publicPlayer, countMessage, validEmote,
-  partyJoin, partyLeave, goMessages, isIdle, nextAlarm,
-  MSG_PER_SEC, PARTY_MS, EMOTES, MAX_COORD, IDLE_MS, SWEEP_MS,
+  partyJoin, partyLeave, goMessages, isIdle, nextAlarm, snapshot, flushIn,
+  MSG_PER_SEC, PARTY_MS, EMOTES, MAX_COORD, IDLE_MS, SWEEP_MS, SNAPSHOT_MS,
 } from '../room/src/protocol.js';
 
 test('coordinates are clamped to the world and rounded', () => {
@@ -89,4 +89,20 @@ test('the room wakes for the duo window, then sweeps, then sleeps', () => {
   assert.equal(nextAlarm(null, 2, now), now + SWEEP_MS, 'otherwise sweep while anyone is here');
   assert.equal(nextAlarm({ ids: [], endsAt: now - 1 }, 1, now), now + SWEEP_MS, 'a window that has passed does not count');
   assert.equal(nextAlarm(null, 0, now), null, 'an empty plaza needs no alarm');
+});
+
+test('positions go out as one snapshot, not one message per pair', () => {
+  const pending = new Map([['a', { x: 1, y: 2 }], ['b', { x: 3.5, y: 4.25 }]]);
+  assert.deepEqual(snapshot(pending), [['a', 1, 2], ['b', 3.5, 4.25]]);
+  assert.equal(snapshot(new Map()), null, 'nothing to say, nothing sent');
+  assert.equal(snapshot(null), null);
+});
+
+test('a snapshot waits its turn', () => {
+  const now = 1_000_000;
+  assert.equal(flushIn(0, now), 0, 'the first one goes at once');
+  assert.equal(flushIn(now, now), SNAPSHOT_MS, 'just sent: wait a full slot');
+  assert.equal(flushIn(now - 40, now), SNAPSHOT_MS - 40);
+  assert.equal(flushIn(now - SNAPSHOT_MS, now), 0);
+  assert.equal(flushIn(now - 10_000, now), 0);
 });
