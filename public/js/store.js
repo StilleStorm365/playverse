@@ -19,3 +19,5 @@ export function getNickname() { return load().nickname ?? ''; }
 export function setNickname(n) { const d = load(); d.nickname = n; save(d); }
 export function getHubSpot() { return load().hubSpot ?? null; }
 export function setHubSpot(spot) { const d = load(); d.hubSpot = spot; save(d); }
+export function getGhostsOn() { return load().ghosts ?? true; }
+export function setGhostsOn(on) { const d = load(); d.ghosts = on; save(d); }

@@ -75,6 +75,7 @@ export function draw(ctx, g, s, t, extra = {}) {
       ctx.fillStyle = '#eef0f7'; ctx.fillText(label, cx, ty);
     }
   }
+  for (const gh of extra.ghosts || []) drawGhost(ctx, gh, s);
   // player
   const px = g.x * s, py = g.y * s, r = HALF * s, bob = g.started && !g.finished ? Math.sin(t * 18) * s * 0.03 : 0;
   ctx.fillStyle = 'rgba(0,0,0,.3)';
@@ -85,4 +86,20 @@ export function draw(ctx, g, s, t, extra = {}) {
   const ex = g.facing * r * 0.25;
   ctx.fillRect(px + ex - r * 0.45, py - r * 0.25 + bob, r * 0.22, r * 0.4);
   ctx.fillRect(px + ex + r * 0.23, py - r * 0.25 + bob, r * 0.22, r * 0.4);
+}
+
+// A see-through runner from a replay. `gh` = {x, y, color, label, done}.
+function drawGhost(ctx, gh, s) {
+  const r = HALF * s, px = gh.x * s, py = gh.y * s;
+  ctx.save();
+  ctx.globalAlpha = gh.done ? 0.25 : 0.45;
+  ctx.fillStyle = gh.color;
+  ctx.beginPath(); ctx.roundRect(px - r, py - r, r * 2, r * 2, r * 0.5); ctx.fill();
+  ctx.globalAlpha = gh.done ? 0.4 : 0.85;
+  if (gh.label) {
+    ctx.font = `600 ${Math.max(9, Math.round(s * 0.28))}px system-ui, sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText(gh.label, px, py - r - s * 0.06);
+  }
+  ctx.restore();
 }
