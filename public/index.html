@@ -4,18 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Playverse</title>
-  <meta name="description" content="Tiny browser games and levels. Walk into a portal, race it, beat the leaderboard.">
+  <meta name="description" content="A tiny shared plaza of portals. Walk around with friends, build a portal to your own game, or jump into Vibe Jam together.">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="bar">
     <a class="brand" href="./">Play<span>verse</span></a>
-    <div class="title" id="title">Nexus Plaza</div>
+    <div class="title" id="title">Nexus Plaza <span class="online" id="online"></span></div>
+    <input id="nick" class="nick" maxlength="16" placeholder="Your name" aria-label="Your name" autocomplete="nickname">
     <button class="secondary" id="browse-btn" aria-expanded="false" aria-controls="browse">Browse all</button>
   </header>
   <main class="stage" id="stage">
-    <canvas id="canvas" aria-label="Hub: walk into a portal to pick a level"></canvas>
-    <div class="hint" id="hint">Walk into a portal · arrow keys / WASD or drag · Enter to play</div>
+    <canvas id="canvas" aria-label="Nexus Plaza: walk into a portal, or onto an empty pad to build one"></canvas>
+    <div class="hint" id="hint">Arrow keys / WASD or drag to walk · Enter in a portal · stand on a + pad to build your own</div>
 
     <div class="plaque" id="plaque" hidden>
       <div class="card">
@@ -23,7 +24,12 @@
         <p id="p-meta"></p>
         <p id="p-best"></p>
         <p id="p-top"></p>
-        <div class="row"><button id="p-enter">Play (Enter)</button></div>
+        <div class="row">
+          <button id="p-enter">Play (Enter)</button>
+          <button class="secondary" id="p-alt" hidden></button>
+          <button class="secondary" id="p-report" hidden>Report</button>
+          <button class="secondary" id="p-remove" hidden>Remove</button>
+        </div>
       </div>
     </div>
 
@@ -36,6 +42,20 @@
         <input id="search" type="search" placeholder="Search levels" aria-label="Search levels">
         <ul class="levels" id="levels"></ul>
       </div>
+    </div>
+
+    <div class="overlay" id="build" hidden>
+      <form class="card" id="build-form" role="dialog" aria-labelledby="build-title" novalidate>
+        <h2 id="build-title">Build a portal</h2>
+        <p id="build-intro"></p>
+        <label class="field">Your name <input id="b-nick" maxlength="16" required autocomplete="nickname"></label>
+        <label class="field">Title <input id="b-title" maxlength="32" required placeholder="My game"></label>
+        <label class="field">Link <input id="b-url" type="url" maxlength="300" required placeholder="https://..." inputmode="url"></label>
+        <label class="check" id="b-mp-row"><input id="b-mp" type="checkbox"> Multiplayer: two people who open this link can play together</label>
+        <p class="small" id="build-rules"></p>
+        <p class="status" id="b-status" role="status"></p>
+        <div class="row"><button id="b-submit" type="submit">Build</button><button class="secondary" id="b-cancel" type="button">Cancel</button></div>
+      </form>
     </div>
 
     <div class="overlay" id="error" hidden>

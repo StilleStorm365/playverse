@@ -5,18 +5,14 @@
 // rate-limit by a salted IP hash.
 import { validateLevel, minTimeMs } from '../../public/js/level.js';
 import { checkReplay, simulate } from '../../public/js/replay.js';
+import { NICK_RE, blocked } from '../../public/js/community.js';
+import { json, ipHash } from '../../lib/server.js';
 
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,31}$/;
-const NICK_RE = /^[A-Za-z0-9 _-]{2,16}$/;
 const MAX_BODY = 64 * 1024;
 const RATE_PER_MINUTE = 10;
 const TOP = 10;
-// Small, conservative blocklist; matched against the nickname with spaces/_/- removed.
-const BLOCK = ['fuck', 'shit', 'cunt', 'nigg', 'fag', 'nazi', 'hitler', 'rape', 'whore', 'slut', 'admin', 'moderator', 'playverse'];
 
-const json = (data, status = 200) => new Response(JSON.stringify(data), {
-  status, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
-});
 
 async function loadLevel(env, request, levelId, version) {
   const url = new URL(`/levels/${levelId}/v${version}.json`, request.url);
@@ -38,12 +34,6 @@ async function top(env, levelId, version) {
   return results;
 }
 
-async function ipHash(env, request) {
-  const ip = request.headers.get('cf-connecting-ip') || 'local';
-  const salt = env.IP_SALT || 'dev-salt';
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${salt}:${ip}`));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
 
 function parseQuery(url) {
   const levelId = url.searchParams.get('levelId') || '';
@@ -80,8 +70,7 @@ export async function onRequestPost({ request, env }) {
 
   if (typeof levelId !== 'string' || !ID_RE.test(levelId) || !Number.isInteger(version) || version < 1) return json({ error: 'Bad level or version' }, 400);
   if (!NICK_RE.test(nickname)) return json({ error: 'Nickname must be 2-16 letters, digits, space, _ or -' }, 400);
-  const squashed = nickname.toLowerCase().replace(/[\s_-]/g, '');
-  if (BLOCK.some((w) => squashed.includes(w))) return json({ error: 'Please choose another nickname' }, 400);
+  if (blocked(nickname)) return json({ error: 'Please choose another nickname' }, 400);
   const replayError = checkReplay(replay);
   if (replayError) return json({ error: `Bad replay: ${replayError}` }, 400);
 
