@@ -33,3 +33,5 @@ export function getOwnerToken() {
 }
 export function getMine() { return load().mine ?? []; }
 export function addMine(id) { const d = load(); d.mine = [...(d.mine ?? []), id].slice(-50); save(d); }
+export function getSeenWelcome() { return load().welcome === true; }
+export function setSeenWelcome() { const d = load(); d.welcome = true; save(d); }
