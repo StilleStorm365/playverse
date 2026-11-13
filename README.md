@@ -31,6 +31,14 @@ npm run smoke -- https://playverse-2kf.pages.dev   # ...or the published one
 welcome. Run it after every deploy.
 Without `dev:room` the hub still works, just alone (the WebSocket to `/api/room` fails and retries).
 
+## First load
+Playverse's own payload is about 26 KB over 16 requests. The pages announce their modules with
+`modulepreload`, and the race level files are fetched when Browse all is opened rather than before
+anyone can walk — that took three requests off the critical path. Honest caveat: on a throttled
+link the time to a drawn plaza varied from 1.9 s to 4.0 s between identical runs, so the preload
+hint could not be shown to help or hurt; it is kept because it removes the module discovery
+waterfall, not because a measurement proved it.
+
 ## Backup
 ```bash
 npm run backup            # the published database -> backups/playverse-remote-<date>.sql
