@@ -13,7 +13,7 @@ import { DurableObject } from 'cloudflare:workers';
 import {
   MAX_PLAYERS, MAX_MSG, EMOTE_GAP_MS, CLOSE_FULL, CLOSE_IDLE,
   clampCoord, cleanNick, publicPlayer, countMessage, validEmote, partyJoin, partyLeave, goMessages,
-  isIdle, nextAlarm, snapshot, flushIn,
+  isIdle, nextAlarm, snapshot, flushIn, shouldSetAlarm,
 } from './protocol.js';
 
 const EMPTY_PARTY = { ids: [], endsAt: 0 };
@@ -169,8 +169,9 @@ export class Room extends DurableObject {
   async rescheduleAlarm() {
     const now = Date.now();
     const party = await this.ctx.storage.get('party');
-    const at = nextAlarm(party, this.live().length, now);
-    if (at) await this.ctx.storage.setAlarm(at);
+    const want = nextAlarm(party, this.live().length, now);
+    const current = await this.ctx.storage.getAlarm();
+    if (shouldSetAlarm(current, want, now)) await this.ctx.storage.setAlarm(want);
   }
 
   async alarm() {
@@ -187,6 +188,7 @@ export class Room extends DurableObject {
     }
     const swept = this.sweep(now);
     await this.ctx.storage.put({ lastSweep: now, sweeps: ((await this.ctx.storage.get('sweeps')) ?? 0) + 1, lastSwept: swept });
+    if (swept) console.log(`swept ${swept} silent connection(s), ${this.live().length} left`);
     await this.rescheduleAlarm();
   }
 }
