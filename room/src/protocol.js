@@ -10,6 +10,9 @@ export const EMOTES = 4;
 export const EMOTE_GAP_MS = 1000;
 export const MAX_COORD = 64;       // tiles; the biggest level is far smaller
 export const CLOSE_FULL = 4001;    // close code the client shows as "the plaza is full"
+export const CLOSE_IDLE = 4002;    // dropped as a ghost: nothing heard for IDLE_MS
+export const IDLE_MS = 12 * 60 * 1000;   // the client pings every 4 min while its tab is visible
+export const SWEEP_MS = 5 * 60 * 1000;   // how often we look for ghosts
 
 /** A coordinate we are willing to relay: finite, inside the world, 2 decimals. */
 export const clampCoord = (v) => (Number.isFinite(v) ? Math.round(Math.max(0, Math.min(MAX_COORD, v)) * 100) / 100 : 0);
@@ -57,4 +60,18 @@ export function goMessages(members, seed) {
     id: m.id,
     msg: { t: 'go', mode, seed, with: members.filter((o) => o.id !== m.id).map((o) => o.nick) },
   }));
+}
+
+/** A connection we have heard nothing from for too long: a closed laptop, a crashed tab. */
+export const isIdle = (a, now) => now - (a?.seen ?? 0) > IDLE_MS;
+
+/**
+ * When the room should wake up next: the duo window if one is running, otherwise a sweep while
+ * anyone is connected. Returns a timestamp, or null when the room can sleep for good.
+ */
+export function nextAlarm(party, connections, now) {
+  const due = [];
+  if (party && party.endsAt > now) due.push(party.endsAt);
+  if (connections > 0) due.push(now + SWEEP_MS);
+  return due.length ? Math.min(...due) : null;
 }

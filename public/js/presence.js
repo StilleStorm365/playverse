@@ -1,16 +1,29 @@
 // Hub presence client: a WebSocket to /api/room. Other players are kept in `peers` and drawn
 // with a little smoothing. Reconnects with backoff; if the room is unavailable the hub still works solo.
-const CLOSE_FULL = 4001;   // the room's own close code: MAX_PLAYERS reached
+//
+// A tab nobody is looking at leaves the plaza: after HIDDEN_GRACE_MS hidden it disconnects, and it
+// comes back when the tab does. Otherwise forgotten tabs would stand around as ghosts and hold one
+// of the 40 places. While visible it pings, so the room can tell a live player from a dead socket.
+const CLOSE_FULL = 4001;         // the room's own close code: MAX_PLAYERS reached
+const HIDDEN_GRACE_MS = 60_000;  // switching tabs for a moment should not make you vanish
+const PING_MS = 240_000;
 
 export function connectPresence({ nick, pos, onEvent }) {
   const peers = new Map();
   const self = { emote: null, emoteAt: 0 };   // our own emote, echoed back by the server
   let ws = null, id = null, retry = 1000, lastSent = 0, lx = null, ly = null;
+  let away = false, hideTimer = null, pingTimer = null, reopenTimer = null;
   const send = (m) => { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); };
+  const reopen = (ms) => { clearTimeout(reopenTimer); reopenTimer = setTimeout(() => { if (!away) open(); }, ms); };
 
   function open() {
+    if (away || ws?.readyState === 0 || ws?.readyState === 1) return;
     try { ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/api/room`); } catch { return; }
-    ws.onopen = () => { retry = 1000; const p = pos(); lx = p.x; ly = p.y; send({ t: 'hi', nick: nick(), x: p.x, y: p.y }); };
+    ws.onopen = () => {
+      retry = 1000; const p = pos(); lx = p.x; ly = p.y;
+      send({ t: 'hi', nick: nick(), x: p.x, y: p.y });
+      clearInterval(pingTimer); pingTimer = setInterval(() => send({ t: 'ping' }), PING_MS);
+    };
     ws.onmessage = (e) => {
       let m; try { m = JSON.parse(e.data); } catch { return; }
       if (m.t === 'welcome') {
@@ -26,11 +39,22 @@ export function connectPresence({ nick, pos, onEvent }) {
     };
     ws.onclose = (e) => {
       const was = id !== null; id = null; peers.clear();
+      clearInterval(pingTimer);
       if (was) onEvent({ t: 'offline' });
       if (e.code === CLOSE_FULL) { onEvent({ t: 'full' }); retry = 15000; }
-      setTimeout(open, retry); retry = Math.min(retry * 2, 20000);
+      reopen(retry); retry = Math.min(retry * 2, 20000);
     };
   }
+
+  // Leave while the tab is hidden, come back when it is looked at again.
+  document.addEventListener('visibilitychange', () => {
+    clearTimeout(hideTimer);
+    if (document.hidden) {
+      hideTimer = setTimeout(() => { away = true; try { ws?.close(1000, 'away'); } catch { /* already gone */ } }, HIDDEN_GRACE_MS);
+    } else if (away) { away = false; retry = 1000; open(); }
+  });
+  addEventListener('pagehide', () => { try { ws?.close(1000, 'bye'); } catch { /* already gone */ } });
+
   open();
 
   return {
