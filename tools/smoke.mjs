@@ -53,6 +53,16 @@ await check('assets', async () => {
   return `${Object.keys(want).length} files`;
 });
 
+await check('security headers', async () => {
+  const r = await get('/');
+  const csp = r.headers.get('content-security-policy') || '';
+  expect(csp.includes("script-src 'self'"), `no script-src 'self' (got "${csp.slice(0, 60)}")`);
+  expect(csp.includes("frame-ancestors 'none'"), 'no frame-ancestors');
+  expect(r.headers.get('x-content-type-options') === 'nosniff', 'no nosniff');
+  expect((r.headers.get('referrer-policy') || '').length > 0, 'no referrer policy');
+  return 'policy, nosniff and referrer policy present';
+});
+
 await check('community portals API', async () => {
   const r = await get('/api/portals');
   expect(r.ok, `status ${r.status}`);

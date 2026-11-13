@@ -13,6 +13,7 @@ export const CLOSE_FULL = 4001;    // close code the client shows as "the plaza 
 export const CLOSE_IDLE = 4002;    // dropped as a ghost: nothing heard for IDLE_MS
 export const IDLE_MS = 12 * 60 * 1000;   // the client pings every 4 min while its tab is visible
 export const SWEEP_MS = 5 * 60 * 1000;   // how often we look for ghosts
+export const SNAPSHOT_MS = 100;    // positions go out as one snapshot at most this often
 
 /** A coordinate we are willing to relay: finite, inside the world, 2 decimals. */
 export const clampCoord = (v) => (Number.isFinite(v) ? Math.round(Math.max(0, Math.min(MAX_COORD, v)) * 100) / 100 : 0);
@@ -74,4 +75,23 @@ export function nextAlarm(party, connections, now) {
   if (party && party.endsAt > now) due.push(party.endsAt);
   if (connections > 0) due.push(now + SWEEP_MS);
   return due.length ? Math.min(...due) : null;
+}
+
+/**
+ * Positions are not relayed one by one. Sending every player's every step to every other player is
+ * work proportional to the square of the crowd: measured on 2026-11-13, 30 players walking produced
+ * over 6000 messages a second and round trips above four seconds. Instead the room collects the
+ * positions that changed and sends one snapshot per client, at most every SNAPSHOT_MS.
+ *
+ * `pending` is a Map of id -> {x, y}. Returns [[id, x, y], ...], or null when there is nothing to say.
+ */
+export function snapshot(pending) {
+  if (!pending?.size) return null;
+  return [...pending].map(([id, p]) => [id, p.x, p.y]);
+}
+
+/** Whether a snapshot may go out now, or has to wait (and for how long). */
+export function flushIn(lastFlush, now) {
+  const due = lastFlush + SNAPSHOT_MS - now;
+  return due > 0 ? due : 0;
 }

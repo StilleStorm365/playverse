@@ -1,0 +1,29 @@
+# Served by Cloudflare Pages with every response.
+# The plaza shows titles and links that players typed, so the browser is told exactly what this
+# site may load: our own scripts and styles, no inline code, no frames, no plugins. Walking into a
+# portal is a plain navigation, which this does not restrict, so players can still leave for a game.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; object-src 'none'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=(), interest-cohort=()
+  Cross-Origin-Opener-Policy: same-origin
+
+# Level files change when a version is published or rolled back: a short cache only.
+/levels/*
+  Cache-Control: public, max-age=60
+
+/css/*
+  Cache-Control: public, max-age=300
+
+/js/*
+  Cache-Control: public, max-age=300
+
+/favicon.svg
+  Cache-Control: public, max-age=86400
+
+/icon-512.png
+  Cache-Control: public, max-age=86400
+
+/og.png
+  Cache-Control: public, max-age=86400
