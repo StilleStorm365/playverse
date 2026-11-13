@@ -67,10 +67,16 @@ canvas { display: block; image-rendering: pixelated; }
 .small { font-size: .85rem; }
 .status { color: var(--danger) !important; min-height: 1.2em; }
 .status.ok { color: var(--accent-2) !important; }
-@media (max-width: 520px) { .bar .nick { width: 6.5rem; } .bar #browse-btn { display: none; } }
+/* On a phone the bar is tight, but nothing is dropped: Browse all is the way in for anyone
+   using a keyboard or a screen reader, so it only gets smaller, never hidden. */
+@media (max-width: 520px) {
+  .bar { gap: 6px; padding: 8px 10px; }
+  .bar .title { display: none; }
+  .bar .nick { width: 5.5rem; }
+  .bar button { padding: 8px 10px; font-size: .85rem; }
+}
 .emotes { position: absolute; top: 10px; left: 12px; display: flex; gap: 6px; z-index: 1; }
 .emote { padding: 4px 8px; font-size: 1.15rem; line-height: 1.2; background: var(--panel-2); border-radius: 999px; }
-@media (max-width: 520px) { .bar { gap: 8px; padding: 8px 10px; } .bar .title { font-size: .95rem; } .bar #invite-btn { padding: 8px 10px; } }
 .emotes[hidden] { display: none; }
 .levels .group { grid-column: 1 / -1; color: var(--muted); font-weight: 700; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; margin-top: 6px; }
 .card .levels a { background: var(--panel-2); }
