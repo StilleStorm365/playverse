@@ -3,7 +3,8 @@
 import { getNickname, setNickname } from './store.js';
 
 const fmt = (ms) => (ms / 1000).toFixed(2);
-export const NICK_RE = /^[A-Za-z0-9 _-]{2,16}$/;
+import { NICK_RE } from './community.js';
+export { NICK_RE };
 
 export async function fetchTop(levelId, version, { ghost = false } = {}) {
   const r = await fetch(`api/scores?levelId=${encodeURIComponent(levelId)}&version=${version}${ghost ? '&ghost=1' : ''}`, { cache: 'no-store' });

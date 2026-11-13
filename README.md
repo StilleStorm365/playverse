@@ -1,12 +1,15 @@
 # Playverse
 
-A public browser portal for AI-made 2D/3D minigames, levels and quests. Low budget, highscores early, multiplayer later. Separate from Little Copenhagen.
+A shared 2D plaza of portals to browser games. Walk around with other players, build a portal to your own game, or jump into Vibe Jam games together. Separate from Little Copenhagen.
+
+Live: https://playverse-2kf.pages.dev/
 
 ## Status
 Version 1 in progress: a small 2D level race where each level is a JSON file, a nickname-only leaderboard per level and version, an English UI, a 2D hub with portals, and proposals from the owner only, reviewed as pull requests.
 
 - Done: game engine, 3 levels, level validator, unit tests, play page, CI, leaderboard API (Pages Function + D1, tested locally), 2D hub "Nexus Plaza" with portals, plaques, deep links and Browse all, first proposal PR (Switchback v2) and a rollback drill, ghosts (input replays, verified on the server), Vibe Jam webring portals in the hub.
-- Next: Cloudflare Pages + D1 setup (on hold until the owner says go).
+- Published 2026-11-13 on Cloudflare Pages + D1.
+- Multiplayer hub (hub v3): other players are shown live, community portals on pads, and a duo Vibe Jam portal. The three race levels are no longer in the hub (owner's choice, 13/11); they are still in Browse all.
 
 ## Run locally
 No build step and no dependencies for the game itself.
@@ -17,8 +20,18 @@ npm run validate         # validate all levels and levels/published.json
 npm run serve            # static server on http://localhost:8788 (leaderboard shows "offline")
 npm install              # dev dependency: wrangler (Cloudflare CLI)
 npm run db:migrate:local # create the local D1 scores table
-npm run dev              # site + /api/scores on http://localhost:8788
+npm run dev              # site + /api/* on http://localhost:8788
+npm run dev:room         # (second terminal) the presence Worker, so the hub shows other players
 ```
+Without `dev:room` the hub still works, just alone (the WebSocket to `/api/room` fails and retries).
+
+## Deploy
+```bash
+npm run db:migrate:remote   # D1 schema
+npm run deploy:room         # presence Worker (Durable Object), before the site
+npm run deploy              # the Pages site
+```
+Secrets live in Cloudflare only: `npx wrangler pages secret put IP_SALT --project-name playverse`.
 
 ## Leaderboard API
 `GET /api/scores?levelId=&version=` returns the top 10 (best time per nickname).
@@ -39,7 +52,7 @@ The race page shows your own best run (stored on this device) and the record run
 server) as see-through runners that start when you start. `G` toggles them.
 
 ## Webring portals (Vibe Jam)
-The hub (v2) has a teal **Vibe Jam ↗** portal. Entering it sends the player to
+The hub has a teal **Vibe Jam ↗** portal. Entering it sends the player to
 `https://vibejam.com/portal/2026` with `portal=true`, `username` (your nickname, if set), `color`,
 `speed` and `ref` (this site), following the [Cursor Vibe Jam 2026 portal guide](https://vibejam.com/2026#portals).
 Players who arrive with `?portal=true` land in the hub at once (no start screen). If `ref` is a
@@ -50,11 +63,34 @@ HTML. Hub portals are `{x, y, levelId}` or `{x, y, webring: "vibejam-2026"}`; th
 `js/webring.js`, not in level data. Unlike the jam sample, entering a portal shows a plaque and you
 press Enter, the same as the level portals. The jam's widget script is not included (it was only required for entries).
 
+## Multiplayer hub
+`/api/room` is a WebSocket to one Durable Object ("nexus") in the Worker `playverse-room` (`room/`),
+bound to the Pages project with `script_name`. It relays positions (max 10/s per client, clamped),
+nickname changes and the duo queue; max 40 players. All client messages are untrusted and size and rate limited.
+
+**Duo Vibe Jam portal.** The first player to press Enter in the Vibe Jam portal opens a 4 s window,
+and everyone else who enters joins. When it closes: 2+ players get the same random seed and each
+picks the same game from the community's multiplayer list (`pickDuoGame`), with the usual portal
+parameters; a single player goes to Vibe Jam's random redirector as before. Whether two players meet
+inside the game depends on the game (games with one shared world, like fly.pieter.com, work).
+
+## Community portals
+`GET /api/portals` lists them; `POST /api/portals` with `action: create | report | remove`.
+- `kind: "portal"` sits on an empty pad in the hub (`pads` in the hub level); `kind: "jam"` only adds a
+  multiplayer game to the duo list (the Vibe Jam plaque has "Add a multiplayer game").
+- Owner's rules (13/11): live at once, with limits: public `https://` links only (no IPs, ports,
+  credentials or localhost), 1 portal and 3 games per person per day (salted IP hash or creator token),
+  portals last 30 days, hidden after 3 reports from different IPs. Titles and names are filtered.
+- The creator can remove their own portal: the browser keeps a random token, the server stores its hash.
+- The plaque says the portal was built by a player and that you leave Playverse.
+
 ## Layout
 ```
 public/                      the static site (Cloudflare Pages output dir)
   index.html, play.html      hub and race page (vanilla JS modules, canvas 2D)
-  js/hub.js                  hub: portals, plaques, Browse all, deep link #/from/<id>
+  js/hub.js                  hub: portals, pads, build dialog, duo queue, plaques, Browse all
+  js/presence.js             WebSocket client for other players in the hub
+  js/community.js            community portal rules (shared with the API)
   js/level.js                level format, validation, minimum-time bound (shared with tools and API)
   js/engine.js               deterministic simulation (fixed 1/120 s step, no DOM)
   js/webring.js              Vibe Jam portal protocol: exit URL, arrival parsing, return URL
@@ -63,6 +99,10 @@ public/                      the static site (Cloudflare Pages output dir)
   levels/<id>/v<n>.json      level versions – immutable once published
   levels/published.json      { "<id>": <active version> } – rollback = change one number
 functions/api/scores.js      leaderboard API (Pages Function, D1 binding DB)
+functions/api/portals.js     community portals API
+functions/api/room.js        WebSocket -> presence Durable Object (binding ROOM)
+lib/server.js                helpers shared by the functions
+room/                        Worker "playverse-room" with the Room Durable Object
 migrations/                  D1 schema
 tools/validate.mjs           CI check: schema, reachability, size, immutability (--base <ref>)
 ```

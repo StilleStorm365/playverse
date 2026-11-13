@@ -21,3 +21,15 @@ export function getHubSpot() { return load().hubSpot ?? null; }
 export function setHubSpot(spot) { const d = load(); d.hubSpot = spot; save(d); }
 export function getGhostsOn() { return load().ghosts ?? true; }
 export function setGhostsOn(on) { const d = load(); d.ghosts = on; save(d); }
+// Random token that proves "I built this portal" (only its hash is stored on the server).
+export function getOwnerToken() {
+  const d = load();
+  if (!d.owner) {
+    const b = new Uint8Array(24); crypto.getRandomValues(b);
+    d.owner = btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    save(d);
+  }
+  return d.owner;
+}
+export function getMine() { return load().mine ?? []; }
+export function addMine(id) { const d = load(); d.mine = [...(d.mine ?? []), id].slice(-50); save(d); }
