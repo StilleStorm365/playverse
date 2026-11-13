@@ -39,7 +39,7 @@ export function step(g, input) {
   const events = [];
   if (g.finished) return events;
   let { dx, dy } = input;
-  const len = Math.hypot(dx, dy);
+  const len = Math.sqrt(dx * dx + dy * dy); // sqrt is exactly rounded everywhere; hypot is not (replays must match)
   if (len > 1) { dx /= len; dy /= len; }
   if (!g.started) {
     if (len === 0) return events;

@@ -5,8 +5,8 @@ A public browser portal for AI-made 2D/3D minigames, levels and quests. Low budg
 ## Status
 Version 1 in progress: a small 2D level race where each level is a JSON file, a nickname-only leaderboard per level and version, an English UI, a 2D hub with portals, and proposals from the owner only, reviewed as pull requests.
 
-- Done: game engine, 3 levels, level validator, unit tests, play page, CI, leaderboard API (Pages Function + D1, tested locally), 2D hub "Nexus Plaza" with portals, plaques, deep links and Browse all.
-- Next: Cloudflare Pages + D1 setup (needs the owner's Cloudflare login), then a first proposal PR and a rollback drill.
+- Done: game engine, 3 levels, level validator, unit tests, play page, CI, leaderboard API (Pages Function + D1, tested locally), 2D hub "Nexus Plaza" with portals, plaques, deep links and Browse all, first proposal PR (Switchback v2) and a rollback drill, ghosts (input replays, verified on the server).
+- Next: Cloudflare Pages + D1 setup (on hold until the owner says go).
 
 ## Run locally
 No build step and no dependencies for the game itself.
@@ -22,11 +22,21 @@ npm run dev              # site + /api/scores on http://localhost:8788
 
 ## Leaderboard API
 `GET /api/scores?levelId=&version=` returns the top 10 (best time per nickname).
-`POST /api/scores` with `{levelId, version, nickname, timeMs}`. Rejected when the level version
-does not exist, the time is below the level's minimum possible time or above 10 min, the nickname
-is not 2–16 of `[A-Za-z0-9 _-]` or is blocklisted, or the IP (stored only as a salted hash; set the
-`IP_SALT` secret in production) has submitted 10 times in the last minute. No login: scores can be
-faked within those bounds, which is accepted for v1.
+`GET ...&ghost=1` also returns `ghost: {nickname, timeMs, replay}`, the fastest run with a replay.
+`POST /api/scores` with `{levelId, version, nickname, replay}`. The server re-simulates the replay
+with the same engine as the browser, and the **simulated** time goes on the board (a `timeMs` in
+the body is ignored). Rejected when the level version does not exist, the replay is malformed,
+longer than 5 min or does not reach the goal, the time is below the level's minimum possible time,
+the nickname is not 2–16 of `[A-Za-z0-9 _-]` or is blocklisted, or the IP (stored only as a salted
+hash; set the `IP_SALT` secret in production) has submitted 10 times in the last minute. No login:
+a bot that really solves a level can still post, which is accepted for v1.
+
+## Ghosts (replays)
+The engine is deterministic, so a run is just its input per 1/120 s step. Input is quantised to
+1/16 (`js/replay.js`) so live play and replay feed the engine identical numbers, and stored
+run-length encoded: `{"v":1,"runs":[[steps, qx, qy], ...]}` with `qx, qy` in −16..16.
+The race page shows your own best run (stored on this device) and the record run (from the
+server) as see-through runners that start when you start. `G` toggles them.
 
 ## Layout
 ```
@@ -35,6 +45,7 @@ public/                      the static site (Cloudflare Pages output dir)
   js/hub.js                  hub: portals, plaques, Browse all, deep link #/from/<id>
   js/level.js                level format, validation, minimum-time bound (shared with tools and API)
   js/engine.js               deterministic simulation (fixed 1/120 s step, no DOM)
+  js/replay.js               input recording, replay check and simulation, ghost frames (shared with the API)
   js/render.js, js/input.js  drawing and keyboard/touch input
   levels/<id>/v<n>.json      level versions – immutable once published
   levels/published.json      { "<id>": <active version> } – rollback = change one number

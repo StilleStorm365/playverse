@@ -5,8 +5,8 @@ import { getNickname, setNickname } from './store.js';
 const fmt = (ms) => (ms / 1000).toFixed(2);
 export const NICK_RE = /^[A-Za-z0-9 _-]{2,16}$/;
 
-export async function fetchTop(levelId, version) {
-  const r = await fetch(`api/scores?levelId=${encodeURIComponent(levelId)}&version=${version}`, { cache: 'no-store' });
+export async function fetchTop(levelId, version, { ghost = false } = {}) {
+  const r = await fetch(`api/scores?levelId=${encodeURIComponent(levelId)}&version=${version}${ghost ? '&ghost=1' : ''}`, { cache: 'no-store' });
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return r.json();
 }
@@ -34,7 +34,7 @@ function render(slot, scores, mine) {
   slot.append(ol);
 }
 
-export function mountBoard(slot, { levelId, version, timeMs }) {
+export function mountBoard(slot, { levelId, version, timeMs, replay, onSubmitted }) {
   slot.replaceChildren();
   const status = document.createElement('p'); status.textContent = 'Loading leaderboard…';
   slot.append(status);
@@ -55,10 +55,13 @@ export function mountBoard(slot, { levelId, version, timeMs }) {
       if (!NICK_RE.test(nickname)) { status.textContent = 'Nickname: 2–16 letters, digits, space, _ or -'; return; }
       btn.disabled = true; setNickname(nickname);
       try {
-        const res = await submit({ levelId, version, nickname, timeMs });
+        const res = await submit({ levelId, version, nickname, replay });
         form.remove();
         status.textContent = res.rank ? `Submitted – you are #${res.rank} on v${version}` : 'Submitted.';
+        // The server re-plays the run; its time is the official one (should always match).
+        if (res.timeMs !== undefined && res.timeMs !== timeMs) status.textContent += ` (server time ${fmt(res.timeMs)} s)`;
         render(slot, res.scores, res.nickname);
+        onSubmitted?.(res);
       } catch (err) {
         status.textContent = `Could not submit: ${err.message}`; btn.disabled = false;
       }
