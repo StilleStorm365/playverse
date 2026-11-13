@@ -32,7 +32,7 @@
     <div class="toast" id="toast" role="status"></div>
     <div class="hint" id="hint">Arrow keys / WASD or drag to walk · Enter in a portal · stand on a + pad to build your own · 1–4 emotes</div>
 
-    <div class="plaque" id="plaque" hidden>
+    <div class="plaque" id="plaque" role="status" aria-live="polite" hidden>
       <div class="card">
         <h2 id="p-title"></h2>
         <p id="p-meta"></p>
@@ -62,7 +62,7 @@
       <form class="card" id="welcome-form" role="dialog" aria-labelledby="welcome-title">
         <h2 id="welcome-title">Welcome to Nexus Plaza</h2>
         <p>A small shared square. Everyone here right now is walking around with you.</p>
-        <p><b>Walk</b> with the arrow keys, WASD or by dragging.</p>
+        <p id="w-walk"><b>Walk</b> with the arrow keys, WASD or by dragging.</p>
         <p><b>The teal portal</b> throws you into a random game from Vibe Jam. Step in together with a friend and you both land in the same multiplayer game.</p>
         <p><b>The + spots</b> are free. Stand on one to build a portal to your own game or page.</p>
         <label class="field">Your name (others see it above your figure) <input id="w-nick" maxlength="16" placeholder="guest" autocomplete="nickname"></label>
