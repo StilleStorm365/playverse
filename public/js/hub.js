@@ -8,7 +8,7 @@ import { createGame, step, STEP } from './engine.js';
 import { fitView, camera, draw } from './render.js';
 import { createInput } from './input.js';
 import { loadPublished, loadLevel } from './levels.js';
-import { getBest, getNickname, setNickname, getOwnerToken, getMine, addMine } from './store.js';
+import { getBest, getNickname, setNickname, getOwnerToken, getMine, addMine, getSeenWelcome, setSeenWelcome } from './store.js';
 import { fetchTop } from './leaderboard.js';
 import { RINGS, parseArrival, exitUrl, returnUrl, gameUrl } from './webring.js';
 import { NICK_RE, blocked, cleanUrl, pickDuoGame, DAILY, PORTAL_DAYS, REPORTS_TO_HIDE } from './community.js';
@@ -92,6 +92,7 @@ async function main() {
       else if (m.t === 'go') go(m);
       else if (m.t === 'portals') refreshItems();
       else if (m.t === 'offline') { party = { ids: [], endsAt: 0 }; lastKey = null; }
+      else if (m.t === 'full') toast('Nexus Plaza is full right now - trying again in a moment');
       updateOnline();
     },
   });
@@ -126,7 +127,7 @@ async function main() {
   const portalDone = (p) => { const l = levels.get(p.levelId)?.level; return l && getBest(l.id, l.version); };
 
   function resize() { view = fitView(canvas, hubLevel, { width: stage.clientWidth - 16, height: stage.clientHeight - 48 }); scale = view.s; }
-  const overlayOpen = () => !$('browse').hidden || !$('build').hidden;
+  const overlayOpen = () => !$('browse').hidden || !$('build').hidden || !$('welcome').hidden;
 
   // ---- Plaques ----
   function plaque({ title, meta = '', best = '', top = '', enter, alt, report, remove }) {
@@ -257,7 +258,7 @@ async function main() {
   };
 
   addEventListener('keydown', (e) => {
-    if (e.code === 'Escape') { if (!$('build').hidden) closeBuild(); else if (!$('browse').hidden) toggleBrowse(false); else cancelWait(); return; }
+    if (e.code === 'Escape') { if (!$('welcome').hidden) closeWelcome(); else if (!$('build').hidden) closeBuild(); else if (!$('browse').hidden) toggleBrowse(false); else cancelWait(); return; }
     if (e.target instanceof HTMLInputElement) return;
     const n = /^Digit([1-4])$/.exec(e.code)?.[1];
     if (n && !overlayOpen()) { emote(Number(n) - 1); return; }
@@ -272,6 +273,21 @@ async function main() {
     b.onclick = () => emote(i);
     return b;
   }));
+  // First visit: one short card about what this place is. Never shown again on this device.
+  if (!getSeenWelcome()) {
+    $('welcome').hidden = false;
+    $('w-go').focus();
+  }
+  function closeWelcome() {
+    $('welcome').hidden = true;
+    setSeenWelcome();
+    input.reset();
+    const name = $('w-nick').value.trim();
+    if (NICK_RE.test(name) && !blocked(name)) { setNickname(name); $('nick').value = name; presence.send({ t: 'nick', nick: name }); }
+    lastKey = null;
+  }
+  $('welcome-form').onsubmit = (e) => { e.preventDefault(); closeWelcome(); };
+
   // Invite: share the plaza link (native share sheet on phones, clipboard elsewhere).
   $('invite-btn').onclick = async () => {
     const url = location.origin + location.pathname;
