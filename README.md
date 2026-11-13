@@ -79,9 +79,11 @@ and rate limited. The rules are pure functions in `room/src/protocol.js`, covere
 `room/src/index.js` only holds the sockets and storage. A full plaza closes the socket with code 4001,
 so the hub can say so instead of retrying silently.
 
-**Ghosts.** A tab nobody is looking at leaves: hidden for a minute and the client disconnects, then
-reconnects when the tab is looked at again. While visible it pings every 4 minutes, and the room
-sweeps every 5 minutes and closes anything silent for 12 minutes (code 4002) — a closed laptop or a
+**Ghosts and keeping alive.** A tab nobody is looking at leaves: hidden for a minute and the client
+disconnects, then reconnects when the tab is looked at again. While visible it pings every 25 s —
+measured 2026-11-13, a socket with no traffic for about a minute is dropped with code 1006 somewhere
+in between, so without the ping a player standing still would be thrown out and reconnected every
+minute. The room sweeps every 5 minutes and closes anything silent for 12 minutes (code 4002) — a closed laptop or a
 crashed tab should not hold one of the 40 places. The same alarm runs the duo window, so an empty
 plaza sets no alarm at all.
 
