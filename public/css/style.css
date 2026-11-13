@@ -75,3 +75,4 @@ canvas { display: block; image-rendering: pixelated; }
 .levels .group { grid-column: 1 / -1; color: var(--muted); font-weight: 700; font-size: .85rem; text-transform: uppercase; letter-spacing: .05em; margin-top: 6px; }
 .card .levels a { background: var(--panel-2); }
 .card .levels a:hover { background: #30364d; }
+.wrap .meta { color: var(--muted); font-size: .9rem; margin: 4px 0; }

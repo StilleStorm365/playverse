@@ -45,7 +45,17 @@ function render({ portals, now }) {
   $('list').tBodies[0].replaceChildren(...rows);
 }
 
+async function liveCount() {
+  try {
+    const r = await fetch('api/room?count=1');
+    if (!r.ok) return;
+    const { players, max } = await r.json();
+    $('live').textContent = `${players} of ${max} in the plaza right now`;
+  } catch { /* room unavailable */ }
+}
+
 async function load() {
+  liveCount();
   try { render(await call('GET')); $('status').textContent = ''; $('login').hidden = true; }
   catch (e) { $('status').textContent = e.message === 'Not allowed' ? 'Wrong or missing token.' : e.message; $('login').hidden = false; }
 }
