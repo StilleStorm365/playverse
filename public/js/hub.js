@@ -12,7 +12,7 @@ import { getBest, getNickname, setNickname, getOwnerToken, getMine, addMine, get
 import { fetchTop } from './leaderboard.js';
 import { RINGS, parseArrival, exitUrl, returnUrl, gameUrl } from './webring.js';
 import { NICK_RE, blocked, cleanUrl, pickDuoGame, DAILY, PORTAL_DAYS, REPORTS_TO_HIDE } from './community.js';
-import { connectPresence } from './presence.js';
+import { connectPresence, plazaStatus } from './presence.js';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('canvas'), ctx = canvas.getContext('2d'), stage = $('stage');
@@ -108,7 +108,17 @@ async function main() {
     },
   });
   const inParty = () => presence.online && party.ids.includes(presence.id);
-  function updateOnline() { $('online').textContent = presence.online ? `· ${presence.peers.size + 1} online` : ''; }
+  // The bar always says where we stand: the count, or that we cannot reach the plaza. Without this
+  // a player whose connection is blocked just sees an empty plaza and no reason why (measured 14/11).
+  function updateOnline() {
+    const s = plazaStatus(presence.state, presence.peers.size + 1);
+    $('online').textContent = s.count;
+    $('conn').textContent = s.conn;
+    $('conn').title = s.conn && presence.state === 'offline'
+      ? "Playverse cannot reach the plaza. You can still walk and enter portals, but you will not see other players."
+      : '';
+  }
+  updateOnline();
 
   // Name field
   $('nick').value = getNickname();
@@ -176,7 +186,7 @@ async function main() {
         title: `${ring.name} webring`,
         meta: presence.online
           ? `Alone: a random jam game. Together: step in within a few seconds of each other and you all go to the same multiplayer game (${duoGames} on the list).`
-          : ring.blurb,
+          : `${ring.blurb} Playverse cannot reach the plaza right now, so you go in alone.`,
         best: inParty() ? `Leaving in ${secsLeft()}s · ${n} ${n === 1 ? 'player' : 'players'} in the portal (Esc to cancel)`
           : n ? `${n} going in ${secsLeft()}s. Press Enter to join them!` : `You leave Playverse for ${hostOf(ring.url)}.`,
         enter: { label: inParty() ? 'Waiting…' : n ? 'Join (Enter)' : 'Go (Enter)', disabled: inParty() },

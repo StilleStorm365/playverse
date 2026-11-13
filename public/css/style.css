@@ -15,6 +15,7 @@ input { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px soli
 
 .bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--panel); position: sticky; top: 0; z-index: 2; }
 .bar .title { font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar.hub .title { flex: none; }   /* on the hub the plaza state next to it takes the slack */
 .bar .stat { font-variant-numeric: tabular-nums; color: var(--muted); }
 .bar .stat b { color: var(--text); }
 .brand { font-weight: 800; letter-spacing: .02em; text-decoration: none; color: var(--text); }
@@ -58,7 +59,9 @@ canvas { display: block; image-rendering: pixelated; }
 #levels { margin-top: 12px; }
 
 /* multiplayer hub + community portals */
-.bar .online { color: var(--accent-2); font-weight: 600; font-size: .85rem; margin-left: 6px; }
+.bar .plaza { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; overflow: hidden; }
+.bar .online { color: var(--accent-2); font-weight: 600; font-size: .85rem; white-space: nowrap; }
+.bar .conn { color: var(--muted); font-size: .85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bar .nick { width: 9.5rem; padding: 6px 10px; }
 .field { display: block; margin: 10px 0 0; color: var(--muted); font-size: .9rem; }
 .field input { display: block; width: 100%; margin-top: 4px; }
@@ -71,7 +74,10 @@ canvas { display: block; image-rendering: pixelated; }
    using a keyboard or a screen reader, so it only gets smaller, never hidden. */
 @media (max-width: 520px) {
   .bar { gap: 6px; padding: 8px 10px; }
-  .bar .title { display: none; }
+  /* Only on the hub: the plaza is named on the page anyway, and we are already home, so these two
+     give their room to the plaza state and the buttons. On a level the title is the level name and
+     the brand is the way back, so both stay. */
+  .bar.hub .title, .bar.hub .brand { display: none; }
   .bar .nick { width: 5.5rem; }
   .bar button { padding: 8px 10px; font-size: .85rem; }
 }

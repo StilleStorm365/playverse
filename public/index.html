@@ -29,9 +29,10 @@
   <link rel="modulepreload" href="js/presence.js">
 </head>
 <body>
-  <header class="bar">
+  <header class="bar hub">
     <a class="brand" href="./">Play<span>verse</span></a>
-    <div class="title" id="title">Nexus Plaza <span class="online" id="online"></span></div>
+    <div class="title" id="title">Nexus Plaza</div>
+    <span class="plaza"><span class="online" id="online"></span><span class="conn" id="conn" role="status"></span></span>
     <input id="nick" class="nick" maxlength="16" placeholder="Your name" aria-label="Your name" autocomplete="nickname">
     <button class="secondary" id="invite-btn">Invite</button>
     <button class="secondary" id="browse-btn" aria-expanded="false" aria-controls="browse">Browse all</button>
