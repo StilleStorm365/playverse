@@ -17,6 +17,8 @@ async function call(method, body) {
 
 function el(tag, text, cls) { const e = document.createElement(tag); if (text !== undefined) e.textContent = text; if (cls) e.className = cls; return e; }
 
+let checks = new Map();   // id -> { ok, status, error } from the last link check
+
 function render({ portals, now }) {
   $('list').hidden = false;
   const rows = portals.map((p) => {
@@ -28,6 +30,8 @@ function render({ portals, now }) {
     const by = el('td'); by.append(el('div', p.nickname), el('div', p.createdAt ? new Date(p.createdAt).toLocaleString() : 'built in', 'url'));
     const reports = el('td'); reports.append(el('span', String(p.reports), p.reports ? 'tag bad' : 'tag'));
     const status = el('td', p.hidden ? 'hidden' : expired ? 'expired' : 'live');
+    const c = checks.get(p.id);
+    if (c) status.append(el('div', c.ok ? `link ok (${c.status})` : c.error || `link failed (${c.status})`, c.ok ? 'url' : 'tag bad'));
     const actions = el('td');
     const btn = (label, action, secondary = true) => {
       const b = el('button', label); if (secondary) b.className = 'secondary';
@@ -56,9 +60,21 @@ async function liveCount() {
 
 async function load() {
   liveCount();
-  try { render(await call('GET')); $('status').textContent = ''; $('login').hidden = true; }
+  try { render(await call('GET')); $('status').textContent = ''; $('login').hidden = true; $('check').hidden = false; }
   catch (e) { $('status').textContent = e.message === 'Not allowed' ? 'Wrong or missing token.' : e.message; $('login').hidden = false; }
 }
+
+$('check').onclick = async () => {
+  $('check').disabled = true; $('check').textContent = 'Checking…';
+  try {
+    const r = await call('POST', { action: 'check' });
+    checks = new Map(r.checks.map((c) => [c.id, c]));
+    const bad = r.checks.filter((c) => !c.ok).length;
+    $('status').textContent = bad ? `${bad} of ${r.checks.length} links did not answer.` : `All ${r.checks.length} links answered.`;
+    render(await call('GET'));
+  } catch (e) { $('status').textContent = e.message; }
+  $('check').disabled = false; $('check').textContent = 'Check links';
+};
 
 $('login').onsubmit = (e) => {
   e.preventDefault();

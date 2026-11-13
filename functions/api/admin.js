@@ -3,6 +3,8 @@
 // locally in .env.admin (git-ignored). Without the secret the endpoint is off.
 // GET  -> { portals: [...all, including hidden and expired, with report counts], now }
 // POST { action: "hide" | "unhide" | "delete", id }
+// POST { action: "check" } -> asks every linked page whether it is still there, so a portal to a
+//                             game that has disappeared can be found without clicking through them all.
 import { json, sha256, readJson } from '../../lib/server.js';
 
 async function authorised(request, env) {
@@ -28,6 +30,7 @@ export async function onRequestPost({ request, env }) {
   if (!(await authorised(request, env))) return json({ error: 'Not allowed' }, 401);
   const { body, error } = await readJson(request, 512);
   if (error) return error;
+  if (body?.action === 'check') return json({ ok: true, checks: await checkLinks(env), now: Date.now() });
   const id = body?.id;
   if (!Number.isInteger(id) || id < 1) return json({ error: 'Bad id' }, 400);
   if (body.action === 'hide') await env.DB.prepare('UPDATE portals SET hidden = 1 WHERE id = ?').bind(id).run();
@@ -48,4 +51,24 @@ export async function onRequestPost({ request, env }) {
     ]);
   } else return json({ error: 'Unknown action' }, 400);
   return json({ ok: true, portals: await all(env), now: Date.now() });
+}
+
+const CHECK_LIMIT = 40;        // keep well inside a Worker's subrequest budget
+const CHECK_TIMEOUT_MS = 6000;
+
+/** Fetches each linked page once and reports what came back. Nothing is hidden automatically. */
+async function checkLinks(env) {
+  const { results } = await env.DB.prepare(
+    'SELECT id, url FROM portals WHERE hidden = 0 ORDER BY id LIMIT ?',
+  ).bind(CHECK_LIMIT).all();
+  const checks = await Promise.all(results.map(async ({ id, url }) => {
+    try {
+      const r = await fetch(url, { method: 'GET', redirect: 'follow', signal: AbortSignal.timeout(CHECK_TIMEOUT_MS) });
+      return { id, status: r.status, ok: r.ok };
+    } catch (e) {
+      // The runtime's own wording ("internal error; reference = ...") says nothing useful here.
+      return { id, status: 0, ok: false, error: e?.name === 'TimeoutError' ? 'no answer in time' : 'could not reach it' };
+    }
+  }));
+  return checks;
 }
