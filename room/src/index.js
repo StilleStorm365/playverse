@@ -24,7 +24,8 @@ export class Room extends DurableObject {
       if (new URL(request.url).searchParams.get('count') === '1') {
         const players = this.live().filter((s) => s.a.nick).length;
         const [lastSweep, sweeps] = await Promise.all([this.ctx.storage.get('lastSweep'), this.ctx.storage.get('sweeps')]);
-        return Response.json({ players, max: MAX_PLAYERS, sockets: this.ctx.getWebSockets().length, lastSweep: lastSweep ?? null, sweeps: sweeps ?? 0 });
+        const alarm = await this.ctx.storage.getAlarm();
+        return Response.json({ players, max: MAX_PLAYERS, sockets: this.ctx.getWebSockets().length, lastSweep: lastSweep ?? null, sweeps: sweeps ?? 0, alarm });
       }
       return new Response('Expected a WebSocket', { status: 426 });
     }
@@ -37,7 +38,10 @@ export class Room extends DurableObject {
     }
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({ id: crypto.randomUUID().slice(0, 8), nick: null, x: 0, y: 0, win: 0, n: 0, seen: Date.now() });
-    this.ctx.waitUntil(this.rescheduleAlarm());
+    // Awaited, not left to run on its own: a promise started here and not waited for can be cut
+    // short when the room goes to sleep after the response, and then no sweep is ever scheduled.
+    // Measured on the published room: five ghosts, zero sweeps, no alarm.
+    await this.rescheduleAlarm();
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -110,7 +114,10 @@ export class Room extends DurableObject {
       return;
     }
     ws.serializeAttachment(a);
-    if (m.t === 'ping') return;            // "I am still here", from a visible tab
+    if (m.t === 'ping') {                  // "I am still here", from a visible tab
+      if ((await this.ctx.storage.getAlarm()) === null) await this.rescheduleAlarm();
+      return;
+    }
     if (m.t === 'jam') await this.joinParty(a.id);
     else if (m.t === 'unjam') await this.leaveParty(a.id);
     else if (m.t === 'portals') this.broadcast({ t: 'portals' }, ws);
