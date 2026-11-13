@@ -9,3 +9,9 @@ database_name = "playverse"
 # Remote D1 created 2026-11-13 (region WEUR). The id is not a secret.
 database_id = "214f2f74-8e65-4a73-81f7-8404b54f038b"
 migrations_dir = "migrations"
+
+# Hub presence (WebSocket). The Durable Object lives in the Worker "playverse-room" (room/wrangler.toml).
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "Room"
+script_name = "playverse-room"

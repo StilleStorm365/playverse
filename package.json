@@ -8,7 +8,10 @@
     "serve": "node tools/serve.mjs",
     "dev": "wrangler pages dev --port 8788",
     "db:migrate:local": "wrangler d1 migrations apply playverse --local",
-    "db:migrate:remote": "wrangler d1 migrations apply playverse --remote"
+    "db:migrate:remote": "wrangler d1 migrations apply playverse --remote",
+    "dev:room": "wrangler dev -c room/wrangler.toml --port 8790 --persist-to .wrangler/room-state",
+    "deploy:room": "wrangler deploy -c room/wrangler.toml",
+    "deploy": "wrangler pages deploy --branch main"
   },
   "devDependencies": {
     "wrangler": "^4.161.0"
