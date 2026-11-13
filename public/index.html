@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Playverse</title>
   <meta name="description" content="A tiny shared plaza of portals. Walk around with friends, build a portal to your own game, or jump into Vibe Jam together.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Playverse - Nexus Plaza">
+  <meta property="og:description" content="A tiny shared plaza of portals. Walk around with friends, build a portal to your own game, or jump into Vibe Jam together.">
+  <meta property="og:url" content="https://playverse-2kf.pages.dev/">
+  <meta property="og:image" content="https://playverse-2kf.pages.dev/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#12141c">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,11 +22,14 @@
     <a class="brand" href="./">Play<span>verse</span></a>
     <div class="title" id="title">Nexus Plaza <span class="online" id="online"></span></div>
     <input id="nick" class="nick" maxlength="16" placeholder="Your name" aria-label="Your name" autocomplete="nickname">
+    <button class="secondary" id="invite-btn">Invite</button>
     <button class="secondary" id="browse-btn" aria-expanded="false" aria-controls="browse">Browse all</button>
   </header>
   <main class="stage" id="stage">
     <canvas id="canvas" aria-label="Nexus Plaza: walk into a portal, or onto an empty pad to build one"></canvas>
-    <div class="hint" id="hint">Arrow keys / WASD or drag to walk · Enter in a portal · stand on a + pad to build your own</div>
+    <div class="emotes" id="emotes" aria-label="Emotes"></div>
+    <div class="toast" id="toast" role="status"></div>
+    <div class="hint" id="hint">Arrow keys / WASD or drag to walk · Enter in a portal · stand on a + pad to build your own · 1–4 emotes</div>
 
     <div class="plaque" id="plaque" hidden>
       <div class="card">

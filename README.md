@@ -31,7 +31,9 @@ npm run db:migrate:remote   # D1 schema
 npm run deploy:room         # presence Worker (Durable Object), before the site
 npm run deploy              # the Pages site
 ```
-Secrets live in Cloudflare only: `npx wrangler pages secret put IP_SALT --project-name playverse`.
+Secrets live in Cloudflare only: `IP_SALT` and `ADMIN_TOKEN`
+(`npx wrangler pages secret put <NAME> --project-name playverse`). The owner's copy of the admin token
+is in `.env.admin` (git-ignored); run the local site with `--binding "$(cat .env.admin)"` to use `/admin.html` locally.
 
 ## Leaderboard API
 `GET /api/scores?levelId=&version=` returns the top 10 (best time per nickname).
@@ -83,6 +85,13 @@ inside the game depends on the game (games with one shared world, like fly.piete
   portals last 30 days, hidden after 3 reports from different IPs. Titles and names are filtered.
 - The creator can remove their own portal: the browser keeps a random token, the server stores its hash.
 - The plaque says the portal was built by a player and that you leave Playverse.
+- Moderation: `/admin.html` (owner only, `ADMIN_TOKEN`) lists every portal with its reports and can
+  hide, unhide or delete it. `GET/POST /api/admin` with `Authorization: Bearer <token>`.
+
+## Social
+- Emotes: keys 1-4 or the buttons top left (👋 ❤️ 😂 🎉), shown above your figure for everyone (max 1 per second).
+- Invite: shares the plaza link (share sheet on phones, clipboard elsewhere). Link previews use `og.png`.
+- On small screens the hub keeps tiles at least 30 px and the camera follows you.
 
 ## Layout
 ```
