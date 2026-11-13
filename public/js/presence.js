@@ -4,9 +4,14 @@
 // A tab nobody is looking at leaves the plaza: after HIDDEN_GRACE_MS hidden it disconnects, and it
 // comes back when the tab does. Otherwise forgotten tabs would stand around as ghosts and hold one
 // of the 40 places. While visible it pings, so the room can tell a live player from a dead socket.
+//
+// PING_MS also keeps the connection open at all: measured on 2026-11-13, a socket with no traffic
+// for about a minute is dropped (code 1006) somewhere between the browser and the room, while one
+// pinging every 30 s lived happily. Without a ping, a player standing still would be thrown out and
+// reconnected every minute, which everyone else would see as leaving and joining over and over.
 const CLOSE_FULL = 4001;         // the room's own close code: MAX_PLAYERS reached
 const HIDDEN_GRACE_MS = 60_000;  // switching tabs for a moment should not make you vanish
-const PING_MS = 240_000;
+const PING_MS = 25_000;          // comfortably under the ~60 s idle limit measured above
 
 export function connectPresence({ nick, pos, onEvent }) {
   const peers = new Map();
