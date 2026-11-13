@@ -11,8 +11,9 @@
 // A full plaza is closed with CLOSE_FULL, so the client can say so instead of retrying silently.
 import { DurableObject } from 'cloudflare:workers';
 import {
-  MAX_PLAYERS, MAX_MSG, EMOTE_GAP_MS, CLOSE_FULL,
+  MAX_PLAYERS, MAX_MSG, EMOTE_GAP_MS, CLOSE_FULL, CLOSE_IDLE,
   clampCoord, cleanNick, publicPlayer, countMessage, validEmote, partyJoin, partyLeave, goMessages,
+  isIdle, nextAlarm,
 } from './protocol.js';
 
 const EMPTY_PARTY = { ids: [], endsAt: 0 };
@@ -34,7 +35,8 @@ export class Room extends DurableObject {
       return new Response(null, { status: 101, webSocket: client });
     }
     this.ctx.acceptWebSocket(server);
-    server.serializeAttachment({ id: crypto.randomUUID().slice(0, 8), nick: null, x: 0, y: 0, win: 0, n: 0 });
+    server.serializeAttachment({ id: crypto.randomUUID().slice(0, 8), nick: null, x: 0, y: 0, win: 0, n: 0, seen: Date.now() });
+    this.ctx.waitUntil(this.rescheduleAlarm());
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -49,6 +51,7 @@ export class Room extends DurableObject {
     if (typeof raw !== 'string' || raw.length > MAX_MSG) return;
     const a = ws.deserializeAttachment();
     const now = Date.now();
+    a.seen = now;
     const within = countMessage(a, now);
     let m;
     try { m = JSON.parse(raw); } catch { m = null; }
@@ -76,6 +79,7 @@ export class Room extends DurableObject {
       return;
     }
     ws.serializeAttachment(a);
+    if (m.t === 'ping') return;            // "I am still here", from a visible tab
     if (m.t === 'jam') await this.joinParty(a.id);
     else if (m.t === 'unjam') await this.leaveParty(a.id);
     else if (m.t === 'portals') this.broadcast({ t: 'portals' }, ws);
@@ -97,7 +101,7 @@ export class Room extends DurableObject {
     const now = Date.now();
     const before = await this.ctx.storage.get('party');
     const party = partyJoin(before, id, now);
-    if (party.endsAt !== before?.endsAt) await this.ctx.storage.setAlarm(party.endsAt);
+    if (party.endsAt !== before?.endsAt) await this.ctx.storage.setAlarm(party.endsAt);   // earlier than any sweep
     await this.ctx.storage.put('party', party);
     this.broadcast({ t: 'party', ...party });
   }
@@ -106,19 +110,39 @@ export class Room extends DurableObject {
     const party = partyLeave(before, id);
     if (party === before) return;
     if (party) await this.ctx.storage.put('party', party);
-    else { await this.ctx.storage.delete('party'); await this.ctx.storage.deleteAlarm(); }
+    else { await this.ctx.storage.delete('party'); await this.rescheduleAlarm(); }
     this.broadcast({ t: 'party', ...(party || EMPTY_PARTY) });
   }
-  async alarm() {
-    const party = await this.ctx.storage.get('party');
-    await this.ctx.storage.delete('party');
-    if (!party) return;
-    const members = this.sockets().filter((s) => s.a.nick && party.ids.includes(s.a.id));
-    const byId = new Map(members.map((s) => [s.a.id, s.ws]));
-    for (const { id, msg } of goMessages(members.map((s) => ({ id: s.a.id, nick: s.a.nick })), Math.random())) {
-      this.send(byId.get(id), msg);
+  /** Closes connections we have not heard from in a long time, so ghosts do not hold a place. */
+  sweep(now) {
+    for (const { ws, a } of this.sockets()) {
+      if (!isIdle(a, now)) continue;
+      try { ws.close(CLOSE_IDLE, 'idle'); } catch { /* already gone */ }
+      if (a.nick) this.broadcast({ t: 'leave', id: a.id }, ws);
     }
-    this.broadcast({ t: 'party', ...EMPTY_PARTY });
+  }
+
+  async rescheduleAlarm() {
+    const now = Date.now();
+    const party = await this.ctx.storage.get('party');
+    const at = nextAlarm(party, this.ctx.getWebSockets().length, now);
+    if (at) await this.ctx.storage.setAlarm(at);
+  }
+
+  async alarm() {
+    const now = Date.now();
+    const party = await this.ctx.storage.get('party');
+    if (party && party.endsAt <= now) {
+      await this.ctx.storage.delete('party');
+      const members = this.sockets().filter((s) => s.a.nick && party.ids.includes(s.a.id));
+      const byId = new Map(members.map((s) => [s.a.id, s.ws]));
+      for (const { id, msg } of goMessages(members.map((s) => ({ id: s.a.id, nick: s.a.nick })), Math.random())) {
+        this.send(byId.get(id), msg);
+      }
+      this.broadcast({ t: 'party', ...EMPTY_PARTY });
+    }
+    this.sweep(now);
+    await this.rescheduleAlarm();
   }
 }
 

@@ -2,7 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   clampCoord, cleanNick, publicPlayer, countMessage, validEmote,
-  partyJoin, partyLeave, goMessages, MSG_PER_SEC, PARTY_MS, EMOTES, MAX_COORD,
+  partyJoin, partyLeave, goMessages, isIdle, nextAlarm,
+  MSG_PER_SEC, PARTY_MS, EMOTES, MAX_COORD, IDLE_MS, SWEEP_MS,
 } from '../room/src/protocol.js';
 
 test('coordinates are clamped to the world and rounded', () => {
@@ -70,4 +71,22 @@ test('two or more travel together on one seed; alone is solo', () => {
   const guests = goMessages([{ id: 'a', nick: 'guest' }, { id: 'b', nick: 'guest' }], 0.2);
   assert.deepEqual(guests[0].msg.with, ['guest']);
   assert.deepEqual(guests[1].msg.with, ['guest']);
+});
+
+test('a connection we have not heard from is a ghost', () => {
+  const now = 1_000_000;
+  assert.equal(isIdle({ seen: now }, now), false);
+  assert.equal(isIdle({ seen: now - IDLE_MS + 1000 }, now), false, 'a client that pinged recently stays');
+  assert.equal(isIdle({ seen: now - IDLE_MS - 1 }, now), true);
+  assert.equal(isIdle({}, now), true, 'a connection that never said anything');
+  assert.equal(isIdle(null, now), true);
+});
+
+test('the room wakes for the duo window, then sweeps, then sleeps', () => {
+  const now = 1_000_000;
+  const party = { ids: ['a'], endsAt: now + 3000 };
+  assert.equal(nextAlarm(party, 2, now), now + 3000, 'the duo window comes first');
+  assert.equal(nextAlarm(null, 2, now), now + SWEEP_MS, 'otherwise sweep while anyone is here');
+  assert.equal(nextAlarm({ ids: [], endsAt: now - 1 }, 1, now), now + SWEEP_MS, 'a window that has passed does not count');
+  assert.equal(nextAlarm(null, 0, now), null, 'an empty plaza needs no alarm');
 });
