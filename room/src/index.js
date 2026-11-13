@@ -22,13 +22,14 @@ export class Room extends DurableObject {
   async fetch(request) {
     if (request.headers.get('Upgrade') !== 'websocket') {
       if (new URL(request.url).searchParams.get('count') === '1') {
-        const players = this.sockets().filter((s) => s.a?.nick).length;
-        return Response.json({ players, max: MAX_PLAYERS });
+        const players = this.live().filter((s) => s.a.nick).length;
+        const [lastSweep, sweeps] = await Promise.all([this.ctx.storage.get('lastSweep'), this.ctx.storage.get('sweeps')]);
+        return Response.json({ players, max: MAX_PLAYERS, sockets: this.ctx.getWebSockets().length, lastSweep: lastSweep ?? null, sweeps: sweeps ?? 0 });
       }
       return new Response('Expected a WebSocket', { status: 426 });
     }
     const [client, server] = Object.values(new WebSocketPair());
-    if (this.ctx.getWebSockets().length >= MAX_PLAYERS) {
+    if (this.live().length >= MAX_PLAYERS) {
       // Accept, then close with our own code: a failed handshake tells the browser nothing.
       server.accept();
       server.close(CLOSE_FULL, 'full');
@@ -45,7 +46,13 @@ export class Room extends DurableObject {
   lastFlush = 0;
   flushTimer = null;
 
-  sockets() { return this.ctx.getWebSockets().map((ws) => ({ ws, a: ws.deserializeAttachment() })); }
+  sockets() { return this.ctx.getWebSockets().map((ws) => ({ ws, a: ws.deserializeAttachment() || {} })); }
+  /**
+   * Connections we still count on. A swept connection is marked `gone` rather than trusted to
+   * disappear: closing a socket whose other end is already unreachable does not always take it off
+   * the list, and a ghost that keeps being counted would eventually fill the plaza.
+   */
+  live() { return this.sockets().filter((s) => !s.a.gone); }
 
   /** Sends the collected positions as one message per client, at most every SNAPSHOT_MS. */
   flush() {
@@ -67,7 +74,7 @@ export class Room extends DurableObject {
   send(ws, m) { try { ws.send(JSON.stringify(m)); } catch { /* gone */ } }
   broadcast(m, except) {
     const s = JSON.stringify(m);
-    for (const ws of this.ctx.getWebSockets()) if (ws !== except) { try { ws.send(s); } catch { /* gone */ } }
+    for (const { ws } of this.live()) if (ws !== except) { try { ws.send(s); } catch { /* gone */ } }
   }
 
   async webSocketMessage(ws, raw) {
@@ -83,7 +90,7 @@ export class Room extends DurableObject {
     if (m.t === 'hi' && !a.nick) {
       a.nick = cleanNick(m.nick); a.x = clampCoord(m.x); a.y = clampCoord(m.y);
       ws.serializeAttachment(a);
-      const players = this.sockets().filter((p) => p.ws !== ws && p.a.nick).map((p) => publicPlayer(p.a));
+      const players = this.live().filter((p) => p.ws !== ws && p.a.nick).map((p) => publicPlayer(p.a));
       this.send(ws, { t: 'welcome', id: a.id, players, party: await this.partyInfo() });
       this.broadcast({ t: 'join', ...publicPlayer(a) }, ws);
       return;
@@ -138,19 +145,24 @@ export class Room extends DurableObject {
     else { await this.ctx.storage.delete('party'); await this.rescheduleAlarm(); }
     this.broadcast({ t: 'party', ...(party || EMPTY_PARTY) });
   }
-  /** Closes connections we have not heard from in a long time, so ghosts do not hold a place. */
+  /** Gives up on connections we have not heard from in a long time, so ghosts do not hold a place. */
   sweep(now) {
-    for (const { ws, a } of this.sockets()) {
+    let swept = 0;
+    for (const { ws, a } of this.live()) {
       if (!isIdle(a, now)) continue;
+      swept++;
+      a.gone = true;
+      try { ws.serializeAttachment(a); } catch { /* already gone */ }
       try { ws.close(CLOSE_IDLE, 'idle'); } catch { /* already gone */ }
       if (a.nick) this.broadcast({ t: 'leave', id: a.id }, ws);
     }
+    return swept;
   }
 
   async rescheduleAlarm() {
     const now = Date.now();
     const party = await this.ctx.storage.get('party');
-    const at = nextAlarm(party, this.ctx.getWebSockets().length, now);
+    const at = nextAlarm(party, this.live().length, now);
     if (at) await this.ctx.storage.setAlarm(at);
   }
 
@@ -166,7 +178,8 @@ export class Room extends DurableObject {
       }
       this.broadcast({ t: 'party', ...EMPTY_PARTY });
     }
-    this.sweep(now);
+    const swept = this.sweep(now);
+    await this.ctx.storage.put({ lastSweep: now, sweeps: ((await this.ctx.storage.get('sweeps')) ?? 0) + 1, lastSwept: swept });
     await this.rescheduleAlarm();
   }
 }
