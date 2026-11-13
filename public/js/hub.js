@@ -39,11 +39,18 @@ async function main() {
     if (hub.type !== 'hub') throw new Error('The hub level is not a hub');
   } catch (e) { return showError(e.message); }
 
-  // Published race levels: used by level portals (if the hub has any) and Browse all.
+  // Published race levels: needed for level portals (if the hub has any) and for Browse all.
+  // Everything else can start without them, so they are fetched on demand.
   const levels = new Map();
-  await Promise.all(Object.entries(pub).filter(([id]) => id !== 'hub').map(async ([id, v]) => {
-    try { const { level, info } = await loadLevel(id, v); if (level.type === 'race') levels.set(id, { level, info }); } catch { /* skip broken */ }
-  }));
+  let levelsLoaded = null;
+  function loadLevels() {
+    levelsLoaded ??= Promise.all(Object.entries(pub).filter(([id]) => id !== 'hub').map(async ([id, v]) => {
+      try { const { level, info } = await loadLevel(id, v); if (level.type === 'race') levels.set(id, { level, info }); } catch { /* skip broken */ }
+    }));
+    return levelsLoaded;
+  }
+  const hasLevelPortals = hub.portals.some((p) => p.levelId);
+  if (hasLevelPortals) await loadLevels();
   const fixed = hub.portals.filter((p) => (p.webring ? RINGS[p.webring] : levels.has(p.levelId)));
   const pads = hub.pads || [];
 
@@ -343,11 +350,15 @@ async function main() {
     if (!out.length) { const li = document.createElement('li'); li.textContent = 'Nothing matches.'; out.push(li); }
     $('levels').replaceChildren(...out);
   }
-  function toggleBrowse(open = $('browse').hidden) {
+  async function toggleBrowse(open = $('browse').hidden) {
     $('browse').hidden = !open;
     $('browse-btn').setAttribute('aria-expanded', String(open));
     input.reset();
-    if (open) { renderList($('search').value); $('search').focus(); } else $('browse-btn').focus();
+    if (!open) { $('browse-btn').focus(); return; }
+    renderList($('search').value);
+    $('search').focus();
+    await loadLevels();                 // first open: fetch the race levels, then fill them in
+    if (!$('browse').hidden) renderList($('search').value);
   }
   $('browse-btn').onclick = () => toggleBrowse();
   $('browse-close').onclick = () => toggleBrowse(false);
