@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Playverse admin</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { display: block; }
+    table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--panel-2); vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    td .url { color: var(--muted); word-break: break-all; font-size: .85rem; }
+    tr.off td { opacity: .55; }
+    .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--panel-2); font-size: .8rem; }
+    .tag.bad { background: var(--danger); color: #fff; }
+    td button { padding: 6px 10px; font-size: .85rem; margin: 0 4px 4px 0; }
+    .table-wrap { overflow-x: auto; }
+    form.login { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+    form.login[hidden] { display: none; }
+    form.login input { flex: 1; min-width: 200px; }
+  </style>
+</head>
+<body>
+  <header class="bar"><a class="brand" href="./">Play<span>verse</span></a><div class="title">Admin · community portals</div></header>
+  <main class="wrap">
+    <form class="login" id="login">
+      <input id="token" type="password" placeholder="Admin token (from .env.admin)" aria-label="Admin token" autocomplete="off">
+      <button>Open</button>
+    </form>
+    <p class="status" id="status" role="status"></p>
+    <div class="table-wrap"><table id="list" hidden>
+      <thead><tr><th>Portal</th><th>Kind</th><th>By</th><th>Reports</th><th>Status</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </main>
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>
