@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   clampCoord, cleanNick, publicPlayer, countMessage, validEmote,
-  partyJoin, partyLeave, goMessages, isIdle, nextAlarm, snapshot, flushIn,
+  partyJoin, partyLeave, goMessages, isIdle, nextAlarm, snapshot, flushIn, shouldSetAlarm,
   MSG_PER_SEC, PARTY_MS, EMOTES, MAX_COORD, IDLE_MS, SWEEP_MS, SNAPSHOT_MS,
 } from '../room/src/protocol.js';
 
@@ -106,4 +106,14 @@ test('a snapshot waits its turn', () => {
   assert.equal(flushIn(now - 40, now), SNAPSHOT_MS - 40);
   assert.equal(flushIn(now - SNAPSHOT_MS, now), 0);
   assert.equal(flushIn(now - 10_000, now), 0);
+});
+
+test('a busy plaza does not starve the sweep', () => {
+  const now = 1_000_000;
+  // The bug: every arrival wanted the alarm five minutes out, pushing the pending one away.
+  assert.equal(shouldSetAlarm(now + 200_000, now + 300_000, now), false, 'never push a pending alarm further out');
+  assert.equal(shouldSetAlarm(null, now + 300_000, now), true, 'no alarm yet: set one');
+  assert.equal(shouldSetAlarm(now + 300_000, now + 4_000, now), true, 'a duo window comes first');
+  assert.equal(shouldSetAlarm(now - 1, now + 300_000, now), true, 'overdue and still here: arm it again');
+  assert.equal(shouldSetAlarm(null, null, now), false, 'an empty plaza needs nothing');
 });
