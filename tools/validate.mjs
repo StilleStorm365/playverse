@@ -55,7 +55,7 @@ else {
   // Published hubs may only link to published race levels.
   if (pub) for (const h of hubs) {
     if (pub[h.id] !== h.version) continue;
-    for (const p of h.portals) {
+    for (const p of h.portals.filter((q) => q.levelId)) {
       if (!(p.levelId in pub)) problems.push(`${h.rel}: portal to "${p.levelId}", which is not published`);
       else if (types.get(`${p.levelId}@${pub[p.levelId]}`) !== 'race') problems.push(`${h.rel}: portal to "${p.levelId}", which is not a race level`);
     }
