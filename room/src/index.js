@@ -19,7 +19,13 @@ const EMPTY_PARTY = { ids: [], endsAt: 0 };
 
 export class Room extends DurableObject {
   async fetch(request) {
-    if (request.headers.get('Upgrade') !== 'websocket') return new Response('Expected a WebSocket', { status: 426 });
+    if (request.headers.get('Upgrade') !== 'websocket') {
+      if (new URL(request.url).searchParams.get('count') === '1') {
+        const players = this.sockets().filter((s) => s.a?.nick).length;
+        return Response.json({ players, max: MAX_PLAYERS });
+      }
+      return new Response('Expected a WebSocket', { status: 426 });
+    }
     const [client, server] = Object.values(new WebSocketPair());
     if (this.ctx.getWebSockets().length >= MAX_PLAYERS) {
       // Accept, then close with our own code: a failed handshake tells the browser nothing.

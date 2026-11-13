@@ -79,7 +79,11 @@ async function main() {
 
   const g = createGame(hubLevel);
   const input = createInput(stage);
-  if (matchMedia('(pointer: coarse)').matches) $('hint').textContent = 'Drag to walk · tap the card to enter · stand on a + to build';
+  const touch = matchMedia('(pointer: coarse)').matches;
+  if (touch) {
+    $('hint').textContent = 'Drag to walk · tap the card to enter · stand on a + to build';
+    $('w-walk').innerHTML = '<b>Walk</b> by dragging anywhere on the square.';
+  }
   let scale, view, acc = 0, last = performance.now(), current = null, lastKey = null;
   let party = { ids: [], endsAt: 0 }, leaving = false;
   const tops = new Map();
