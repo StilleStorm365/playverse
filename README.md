@@ -79,6 +79,12 @@ and rate limited. The rules are pure functions in `room/src/protocol.js`, covere
 `room/src/index.js` only holds the sockets and storage. A full plaza closes the socket with code 4001,
 so the hub can say so instead of retrying silently.
 
+**Ghosts.** A tab nobody is looking at leaves: hidden for a minute and the client disconnects, then
+reconnects when the tab is looked at again. While visible it pings every 4 minutes, and the room
+sweeps every 5 minutes and closes anything silent for 12 minutes (code 4002) — a closed laptop or a
+crashed tab should not hold one of the 40 places. The same alarm runs the duo window, so an empty
+plaza sets no alarm at all.
+
 The duo list is seeded in `migrations/0004_seed_games.sql` with multiplayer jam games taken from two
 public Vibe Jam catalogues and fetched once to check they answered. They are other people's sites:
 the owner can remove any of them from `/admin.html`, and players can report them.
