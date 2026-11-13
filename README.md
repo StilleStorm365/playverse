@@ -68,7 +68,10 @@ press Enter, the same as the level portals. The jam's widget script is not inclu
 ## Multiplayer hub
 `/api/room` is a WebSocket to one Durable Object ("nexus") in the Worker `playverse-room` (`room/`),
 bound to the Pages project with `script_name`. It relays positions (max 10/s per client, clamped),
-nickname changes and the duo queue; max 40 players. All client messages are untrusted and size and rate limited.
+nickname changes, emotes and the duo queue; max 40 players. All client messages are untrusted and size
+and rate limited. The rules are pure functions in `room/src/protocol.js`, covered by `test/room.test.mjs`;
+`room/src/index.js` only holds the sockets and storage. A full plaza closes the socket with code 4001,
+so the hub can say so instead of retrying silently.
 
 **Duo Vibe Jam portal.** The first player to press Enter in the Vibe Jam portal opens a 4 s window,
 and everyone else who enters joins. When it closes: 2+ players get the same random seed and each
@@ -91,6 +94,10 @@ inside the game depends on the game (games with one shared world, like fly.piete
 ## Social
 - Emotes: keys 1-4 or the buttons top left (👋 ❤️ 😂 🎉), shown above your figure for everyone (max 1 per second).
 - Browse all: one searchable list of community portals, the duo game list and the race levels (the keyboard and screen-reader way in).
+- First visit: one card explaining the plaza, the teal portal and the pads, with a name field. Stored per device.
+- `manifest.webmanifest`: the plaza can be added to a phone's home screen.
+- The race page keeps the whole level on screen instead of a camera: everyone shares one leaderboard,
+  so nobody should see less of the level than the next player.
 - Invite: shares the plaza link (share sheet on phones, clipboard elsewhere). Link previews use `og.png`.
 - On small screens the hub keeps tiles at least 30 px and the camera follows you.
 
