@@ -90,12 +90,16 @@ inside the game depends on the game (games with one shared world, like fly.piete
 - The plaque says the portal was built by a player and that you leave Playverse.
 - Moderation: `/admin.html` (owner only, `ADMIN_TOKEN`) lists every portal with its reports and can
   hide, unhide or delete it. `GET/POST /api/admin` with `Authorization: Bearer <token>`.
+  The page also shows how many are in the plaza right now (`GET /api/room?count=1`).
 
 ## Social
 - Emotes: keys 1-4 or the buttons top left (👋 ❤️ 😂 🎉), shown above your figure for everyone (max 1 per second).
 - Browse all: one searchable list of community portals, the duo game list and the race levels (the keyboard and screen-reader way in).
 - First visit: one card explaining the plaza, the teal portal and the pads, with a name field. Stored per device.
 - `manifest.webmanifest`: the plaza can be added to a phone's home screen.
+- Screen readers: the plaque is a polite live region, so stepping onto a portal is announced; the
+  whole plaza is also reachable as plain links through Browse all. Touch devices get touch wording.
+- `robots.txt` and `sitemap.xml` allow the plaza to be indexed, but not `/admin.html` or `/api/`.
 - The race page keeps the whole level on screen instead of a camera: everyone shares one leaderboard,
   so nobody should see less of the level than the next player.
 - Invite: shares the plaza link (share sheet on phones, clipboard elsewhere). Link previews use `og.png`.
