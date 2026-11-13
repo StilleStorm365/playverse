@@ -87,7 +87,8 @@ test('the room wakes for the duo window, then sweeps, then sleeps', () => {
   const party = { ids: ['a'], endsAt: now + 3000 };
   assert.equal(nextAlarm(party, 2, now), now + 3000, 'the duo window comes first');
   assert.equal(nextAlarm(null, 2, now), now + SWEEP_MS, 'otherwise sweep while anyone is here');
-  assert.equal(nextAlarm({ ids: [], endsAt: now - 1 }, 1, now), now + SWEEP_MS, 'a window that has passed does not count');
+  assert.equal(nextAlarm({ ids: ['a'], endsAt: now - 1 }, 1, now), now, 'a window that has run out is handled at once, not at the next sweep');
+  assert.equal(nextAlarm({ ids: ['a'], endsAt: now - 60_000 }, 0, now), now, 'even with nobody left connected');
   assert.equal(nextAlarm(null, 0, now), null, 'an empty plaza needs no alarm');
 });
 

@@ -71,8 +71,11 @@ export const isIdle = (a, now) => now - (a?.seen ?? 0) > IDLE_MS;
  * anyone is connected. Returns a timestamp, or null when the room can sleep for good.
  */
 export function nextAlarm(party, connections, now) {
+  // A window that has already run out is handled at once: anyone standing in the portal is
+  // waiting on it, and making them wait for the next sweep would look like the portal is broken.
+  if (party && party.endsAt <= now) return now;
   const due = [];
-  if (party && party.endsAt > now) due.push(party.endsAt);
+  if (party) due.push(party.endsAt);
   if (connections > 0) due.push(now + SWEEP_MS);
   return due.length ? Math.min(...due) : null;
 }
