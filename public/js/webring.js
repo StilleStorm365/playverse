@@ -66,3 +66,14 @@ export function returnUrl(arrival, { selfUrl, nickname } = {}) {
   if (nickname) params.username = nickname;
   return build(arrival.ref.toString(), params);
 }
+
+/** URL for the duo portal: a multiplayer game from the community list, with the same portal parameters. */
+export function gameUrl(url, { selfUrl, nickname, arrival } = {}) {
+  return build(url, {
+    portal: 'true',
+    username: nickname || arrival?.params.username,
+    color: arrival?.params.color || PLAYER_COLOR,
+    speed: PLAYER_SPEED,
+    ref: selfUrl,
+  });
+}

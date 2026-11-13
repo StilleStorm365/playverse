@@ -1,13 +1,13 @@
 // Level format, validation and analysis. Shared by the browser and tools/validate.mjs.
 // A level is pure data: no code, no URLs. See docs/teknisk-skitse.md.
 
-export const LIMITS = { maxWidth: 32, maxHeight: 18, minSize: 3, maxBytes: 8192, maxStars: 5, maxPortals: 12 };
+export const LIMITS = { maxWidth: 32, maxHeight: 18, minSize: 3, maxBytes: 8192, maxStars: 5, maxPortals: 12, maxPads: 32 };
 export const SPEED = 5;              // tiles per second (must match engine.js)
 export const STAR_BONUS_MS = 500;    // each star subtracts this from the time
 const TILE_CHARS = new Set(['#', '.', '^', 'S', 'G', '*']);
 // Webrings a hub portal may lead out to (the URLs live in js/webring.js, not in level data).
 export const WEBRINGS = new Set(['vibejam-2026']);
-const KEYS = new Set(['id', 'version', 'title', 'author', 'type', 'tiles', 'portals']);
+const KEYS = new Set(['id', 'version', 'title', 'author', 'type', 'tiles', 'portals', 'pads']);
 const ID_RE = /^[a-z0-9][a-z0-9-]{1,31}$/;
 
 function findAll(tiles, ch) {
@@ -120,6 +120,7 @@ export function validateLevel(obj, { bytes } = {}) {
     if (goals.length !== 1) err(`need exactly one goal "G", found ${goals.length}`);
     if (stars.length > LIMITS.maxStars) err(`at most ${LIMITS.maxStars} stars, found ${stars.length}`);
     if (obj.portals !== undefined) err('only hub levels can have portals');
+    if (obj.pads !== undefined) err('only hub levels can have pads');
   } else {
     if (goals.length || stars.length) err('hub levels cannot have goals or stars');
     if (!Array.isArray(obj.portals) || obj.portals.length < 1 || obj.portals.length > LIMITS.maxPortals) err(`hub needs 1-${LIMITS.maxPortals} portals`);
@@ -146,6 +147,18 @@ export function validateLevel(obj, { bytes } = {}) {
       if (seen.has(k)) err(`portal ${i} overlaps another portal`);
       seen.add(k);
     });
+    // Pads: empty floor spots where players may build a community portal.
+    if (obj.pads !== undefined) {
+      if (!Array.isArray(obj.pads) || obj.pads.length > LIMITS.maxPads) err(`pads must be a list of at most ${LIMITS.maxPads}`);
+      else obj.pads.forEach((p, i) => {
+        if (!p || typeof p !== 'object' || !Number.isInteger(p.x) || !Number.isInteger(p.y) || Object.keys(p).some((k) => k !== 'x' && k !== 'y')) { err(`pad ${i} must be {x, y}`); return; }
+        if (p.x < 0 || p.y < 0 || p.x >= width || p.y >= t.length || t[p.y][p.x] !== '.') { err(`pad ${i} must sit on a floor tile`); return; }
+        if (!canReach(p)) err(`pad ${i} cannot be reached`);
+        const k = `${p.x},${p.y}`;
+        if (seen.has(k)) err(`pad ${i} overlaps a portal or another pad`);
+        seen.add(k);
+      });
+    }
   }
 
   const info = { type, width, height: t.length, stars: stars.length, minTimeMs: type === 'race' ? minTimeMs(obj) : 0 };
