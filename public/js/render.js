@@ -17,6 +17,29 @@ export function fit(canvas, level, box) {
   return size * dpr;
 }
 
+/**
+ * Like fit(), but never lets tiles get smaller than `minPx` CSS pixels (readable and touchable on phones).
+ * When the level is then bigger than the box, the canvas is box-sized and draw() scrolls (extra.cam).
+ * Returns { s, vw, vh, scroll } in device pixels.
+ */
+export function fitView(canvas, level, box, minPx = 30) {
+  const w = level.tiles[0].length, h = level.tiles.length;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const fitSize = Math.floor(Math.min(box.width / w, box.height / h));
+  const size = Math.max(8, fitSize, minPx);
+  const cw = Math.min(size * w, Math.floor(box.width)), ch = Math.min(size * h, Math.floor(box.height));
+  canvas.style.width = `${cw}px`; canvas.style.height = `${ch}px`;
+  canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
+  return { s: size * dpr, vw: canvas.width, vh: canvas.height, scroll: size > fitSize };
+}
+
+/** Camera offset (device px) that keeps (x, y) in tiles centred, clamped to the level edges. */
+export function camera(view, level, x, y) {
+  const W = level.tiles[0].length * view.s, H = level.tiles.length * view.s;
+  const clamp = (v, max) => Math.max(0, Math.min(max, v));
+  return { x: Math.round(clamp(x * view.s - view.vw / 2, W - view.vw)), y: Math.round(clamp(y * view.s - view.vh / 2, H - view.vh)) };
+}
+
 function starPath(ctx, cx, cy, r) {
   ctx.beginPath();
   for (let i = 0; i < 10; i++) {
@@ -28,7 +51,9 @@ function starPath(ctx, cx, cy, r) {
 
 export function draw(ctx, g, s, t, extra = {}) {
   const { tiles } = g.level;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  if (extra.cam) ctx.translate(-extra.cam.x, -extra.cam.y);
   for (let y = 0; y < tiles.length; y++) {
     for (let x = 0; x < tiles[0].length; x++) {
       const c = tiles[y][x], px = x * s, py = y * s;
@@ -88,6 +113,7 @@ export function draw(ctx, g, s, t, extra = {}) {
   }
   for (const gh of extra.ghosts || []) drawGhost(ctx, gh, s);
   for (const pe of extra.peers || []) drawPeer(ctx, pe, s, t);
+  for (const b of extra.bubbles || []) drawBubble(ctx, b, s);
   // player
   const px = g.x * s, py = g.y * s, r = HALF * s, bob = g.started && !g.finished ? Math.sin(t * 18) * s * 0.03 : 0;
   ctx.fillStyle = 'rgba(0,0,0,.3)';
@@ -132,4 +158,15 @@ function drawPeer(ctx, pe, s) {
   const w = ctx.measureText(pe.nick).width + s * 0.2;
   ctx.fillRect(px - w / 2, py - r - s * 0.42, w, s * 0.38);
   ctx.fillStyle = '#eef0f7'; ctx.fillText(pe.nick, px, py - r - s * 0.08);
+}
+
+// A short emote above a player. `b` = {x, y, text, age} with age in seconds (fades out).
+function drawBubble(ctx, b, s) {
+  const px = b.x * s, py = (b.y - 0.95 - Math.min(b.age, 0.3)) * s;
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, (2.5 - b.age) / 0.5));
+  ctx.font = `${Math.round(s * 0.7)}px system-ui, "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText(b.text, px, py);
+  ctx.restore();
 }
