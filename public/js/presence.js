@@ -2,6 +2,7 @@
 // with a little smoothing. Reconnects with backoff; if the room is unavailable the hub still works solo.
 export function connectPresence({ nick, pos, onEvent }) {
   const peers = new Map();
+  const self = { emote: null, emoteAt: 0 };   // our own emote, echoed back by the server
   let ws = null, id = null, retry = 1000, lastSent = 0, lx = null, ly = null;
   const send = (m) => { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); };
 
@@ -18,6 +19,7 @@ export function connectPresence({ nick, pos, onEvent }) {
       else if (m.t === 'pos') { const p = peers.get(m.id); if (p) { p.x = m.x; p.y = m.y; } }
       else if (m.t === 'nick') { const p = peers.get(m.id); if (p) p.nick = m.nick; }
       else if (m.t === 'leave') peers.delete(m.id);
+      else if (m.t === 'emote') { const p = m.id === id ? self : peers.get(m.id); if (p) { p.emote = m.e; p.emoteAt = performance.now(); } }
       else onEvent(m);
     };
     ws.onclose = () => {
@@ -29,7 +31,7 @@ export function connectPresence({ nick, pos, onEvent }) {
   open();
 
   return {
-    peers, send,
+    peers, self, send,
     get online() { return id !== null; },
     get id() { return id; },
     /** Call every frame: sends our position at most 10 times a second, and only when it changed. */

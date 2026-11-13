@@ -5,7 +5,7 @@
 // - The Vibe Jam portal waits a few seconds after the first player enters: if 2+ players went in,
 //   they all go to the same random multiplayer game from the community list, else to Vibe Jam's own random pick.
 import { createGame, step, STEP } from './engine.js';
-import { fit, draw } from './render.js';
+import { fitView, camera, draw } from './render.js';
 import { createInput } from './input.js';
 import { loadPublished, loadLevel } from './levels.js';
 import { getBest, getNickname, setNickname, getOwnerToken, getMine, addMine } from './store.js';
@@ -18,6 +18,7 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('canvas'), ctx = canvas.getContext('2d'), stage = $('stage');
 const fmt = (ms) => (ms / 1000).toFixed(2);
 const hostOf = (url) => { try { return new URL(url).hostname; } catch { return url; } };
+const EMOTES = ['👋', '❤️', '😂', '🎉'];
 const peerColor = (id) => { let h = 0; for (const c of id) h = (h * 31 + c.charCodeAt(0)) % 360; return `hsl(${h} 80% 72%)`; };
 
 function showError(msg) { $('error-text').textContent = msg; $('error').hidden = false; $('hint').hidden = true; }
@@ -78,7 +79,8 @@ async function main() {
 
   const g = createGame(hubLevel);
   const input = createInput(stage);
-  let scale, acc = 0, last = performance.now(), current = null, lastKey = null;
+  if (matchMedia('(pointer: coarse)').matches) $('hint').textContent = 'Drag to walk · tap the card to enter · stand on a + to build';
+  let scale, view, acc = 0, last = performance.now(), current = null, lastKey = null;
   let party = { ids: [], endsAt: 0 }, leaving = false;
   const tops = new Map();
 
@@ -123,7 +125,7 @@ async function main() {
   };
   const portalDone = (p) => { const l = levels.get(p.levelId)?.level; return l && getBest(l.id, l.version); };
 
-  function resize() { scale = fit(canvas, hubLevel, { width: stage.clientWidth - 16, height: stage.clientHeight - 48 }); }
+  function resize() { view = fitView(canvas, hubLevel, { width: stage.clientWidth - 16, height: stage.clientHeight - 48 }); scale = view.s; }
   const overlayOpen = () => !$('browse').hidden || !$('build').hidden;
 
   // ---- Plaques ----
@@ -257,8 +259,30 @@ async function main() {
   addEventListener('keydown', (e) => {
     if (e.code === 'Escape') { if (!$('build').hidden) closeBuild(); else if (!$('browse').hidden) toggleBrowse(false); else cancelWait(); return; }
     if (e.target instanceof HTMLInputElement) return;
+    const n = /^Digit([1-4])$/.exec(e.code)?.[1];
+    if (n && !overlayOpen()) { emote(Number(n) - 1); return; }
     if ((e.code === 'Enter' || e.code === 'Space') && current && !overlayOpen()) { e.preventDefault(); enter(); }
   });
+  // Emotes: buttons (touch) and keys 1-4. Shown above your figure for everyone in the plaza.
+  function emote(i) { if (presence.online) presence.send({ t: 'emote', e: i }); }
+  $('emotes').replaceChildren(...EMOTES.map((ch, i) => {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'emote'; b.textContent = ch;
+    b.setAttribute('aria-label', `Emote ${ch} (key ${i + 1})`);
+    b.addEventListener('pointerdown', (e) => e.stopPropagation());
+    b.onclick = () => emote(i);
+    return b;
+  }));
+  // Invite: share the plaza link (native share sheet on phones, clipboard elsewhere).
+  $('invite-btn').onclick = async () => {
+    const url = location.origin + location.pathname;
+    try {
+      if (navigator.share) await navigator.share({ title: 'Playverse', text: 'Meet me in Nexus Plaza - we can jump into Vibe Jam together.', url });
+      else { await navigator.clipboard.writeText(url); toast('Link copied - send it to a friend'); }
+    } catch { /* cancelled */ }
+  };
+  let toastTimer;
+  function toast(text) { $('toast').textContent = text; $('toast').classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2200); }
+
   addEventListener('resize', resize);
   addEventListener('pageshow', (e) => { if (e.persisted) leaving = false; });
 
@@ -313,7 +337,12 @@ async function main() {
     presence.tick(now, g.x, g.y, dt);
     if (now - lastTick > 1000) { lastTick = now; updateOnline(); }
     const peers = [...presence.peers.values()].map((p) => ({ x: p.rx, y: p.ry, nick: p.nick, color: peerColor(p.id) }));
-    draw(ctx, g, scale, now / 1000, { labels, portalDone, pads: emptyPads(), peers });
+    const bubbles = [];
+    const bubble = (who, x, y) => { const age = (now - who.emoteAt) / 1000; if (who.emote !== null && who.emote !== undefined && age < 2.5) bubbles.push({ x, y, text: EMOTES[who.emote], age }); };
+    for (const p of presence.peers.values()) bubble(p, p.rx, p.ry);
+    bubble(presence.self, g.x, g.y);
+    const cam = view.scroll ? camera(view, hubLevel, g.x, g.y) : null;
+    draw(ctx, g, scale, now / 1000, { labels, portalDone, pads: emptyPads(), peers, cam, bubbles });
     requestAnimationFrame(frame);
   }
   await refreshItems();

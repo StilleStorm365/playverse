@@ -2,9 +2,9 @@
 // Uses the WebSocket Hibernation API, so an idle room costs nothing. All client input is untrusted.
 //
 // Client -> server: {t:'hi', nick, x, y} once, then {t:'pos', x, y}, {t:'nick', nick},
-//                   {t:'jam'} / {t:'unjam'} (enter / leave the Vibe Jam portal queue), {t:'portals'} (list changed).
+//                   {t:'emote', e: 0..EMOTES-1} (max 1/s), {t:'jam'} / {t:'unjam'} (enter / leave the Vibe Jam portal queue), {t:'portals'} (list changed).
 // Server -> client: {t:'welcome', id, players, party}, {t:'join'|'pos'|'nick'|'leave', ...},
-//                   {t:'party', ids, endsAt}, {t:'go', mode:'duo'|'solo', seed, with}, {t:'portals'}.
+//                   {t:'emote', id, e}, {t:'party', ids, endsAt}, {t:'go', mode:'duo'|'solo', seed, with}, {t:'portals'}.
 // Duo: the first player to enter opens a PARTY_MS window; whoever else enters joins. When it closes,
 // 2+ players get the same random seed and pick the same multiplayer game from the shared list.
 import { DurableObject } from 'cloudflare:workers';
@@ -14,6 +14,7 @@ const MAX_PLAYERS = 40;
 const PARTY_MS = 4000;
 const MAX_MSG = 300;
 const MSG_PER_SEC = 25;
+const EMOTES = 4;
 
 const num = (v) => (Number.isFinite(v) ? Math.round(Math.max(0, Math.min(64, v)) * 100) / 100 : 0);
 const cleanNick = (n) => {
@@ -65,6 +66,11 @@ export class Room extends DurableObject {
       return;
     }
     if (m.t === 'nick') { a.nick = cleanNick(m.nick); ws.serializeAttachment(a); this.broadcast({ t: 'nick', id: a.id, nick: a.nick }); return; }
+    if (m.t === 'emote') {
+      if (Number.isInteger(m.e) && m.e >= 0 && m.e < EMOTES && now - (a.em || 0) >= 1000) { a.em = now; this.broadcast({ t: 'emote', id: a.id, e: m.e }); }
+      ws.serializeAttachment(a);
+      return;
+    }
     ws.serializeAttachment(a);
     if (m.t === 'jam') await this.joinParty(a.id);
     else if (m.t === 'unjam') await this.leaveParty(a.id);
