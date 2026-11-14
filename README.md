@@ -86,6 +86,14 @@ HTML. Hub portals are `{x, y, levelId}` or `{x, y, webring: "vibejam-2026"}`; th
 `js/webring.js`, not in level data. Unlike the jam sample, entering a portal shows a plaque and you
 press Enter, the same as the level portals. The jam's widget script is not included (it was only required for entries).
 
+**Where the portal actually sends you (14/11).** `https://vibejam.com/portal/2026` no longer
+redirects anywhere: it answers 200 with a page that only links to the jam's front page, and before
+that it sent players to games that are no longer up (Tommy hit a dead host). So the portal now
+picks from the community jam list whether you go in alone or together - `pickJamGame(items, seed,
+multiplayerOnly)` - and the webring URL is only the fallback when the list is empty. Together, the
+server's seed still makes it the same game for everyone who stepped in. The pick is also limited to
+`kind: 'jam'` rows now; a hub portal marked multiplayer could be chosen before.
+
 ## Multiplayer hub
 `/api/room` is a WebSocket to one Durable Object ("nexus") in the Worker `playverse-room` (`room/`),
 bound to the Pages project with `script_name`. It relays positions (max 10/s per client, clamped),
