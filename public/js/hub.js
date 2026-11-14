@@ -11,7 +11,7 @@ import { loadPublished, loadLevel } from './levels.js';
 import { getBest, getNickname, setNickname, getOwnerToken, getMine, addMine, getSeenWelcome, setSeenWelcome } from './store.js';
 import { fetchTop } from './leaderboard.js';
 import { RINGS, parseArrival, exitUrl, returnUrl, gameUrl } from './webring.js';
-import { NICK_RE, blocked, cleanUrl, pickDuoGame, DAILY, PORTAL_DAYS, REPORTS_TO_HIDE } from './community.js';
+import { NICK_RE, blocked, cleanUrl, pickJamGame, DAILY, PORTAL_DAYS, REPORTS_TO_HIDE } from './community.js';
 import { connectPresence, plazaStatus } from './presence.js';
 
 const $ = (id) => document.getElementById(id);
@@ -130,10 +130,12 @@ async function main() {
     setNickname(v); presence.send({ t: 'nick', nick: v });
   };
 
+  // Both alone and together we send the player to a game from the community list; the webring is
+  // only the fallback when the list is empty. Together, the server's seed makes it the same game.
   function go(m) {
     const nickname = getNickname() || undefined;
-    let url = null;
-    if (m.mode === 'duo') { const game = pickDuoGame(items, m.seed); if (game) url = gameUrl(game.url, { selfUrl, nickname, arrival }); }
+    const game = pickJamGame(items, m.seed, m.mode === 'duo');
+    const url = game ? gameUrl(game.url, { selfUrl, nickname, arrival }) : null;
     leaving = true;
     location.href = url || exitUrl('vibejam-2026', { selfUrl, nickname, arrival });
   }
@@ -185,7 +187,7 @@ async function main() {
       return plaque({
         title: `${ring.name} webring`,
         meta: presence.online
-          ? `Alone: a random jam game. Together: step in within a few seconds of each other and you all go to the same multiplayer game (${duoGames} on the list).`
+          ? `Alone: a random game from the list. Together: step in within a few seconds of each other and you all go to the same multiplayer game (${duoGames} on the list).`
           : `${ring.blurb} Playverse cannot reach the plaza right now, so you go in alone.`,
         best: inParty() ? `Leaving in ${secsLeft()}s · ${n} ${n === 1 ? 'player' : 'players'} in the portal (Esc to cancel)`
           : n ? `${n} going in ${secsLeft()}s. Press Enter to join them!` : `You leave Playverse for ${hostOf(ring.url)}.`,
@@ -217,7 +219,7 @@ async function main() {
     if (p.community) { leaving = true; location.href = p.community.url; return; }
     if (p.returnTo) { leaving = true; location.href = returnUrl(arrival, { selfUrl, nickname }); return; }
     if (p.webring) {
-      if (!presence.online) { leaving = true; location.href = exitUrl(p.webring, { selfUrl, nickname, arrival }); return; }
+      if (!presence.online) { go({ mode: 'solo', seed: Math.random() }); return; }
       if (!inParty()) presence.send({ t: 'jam' });
       return;
     }

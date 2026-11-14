@@ -52,9 +52,21 @@ export function checkSubmission(body, { padCount = Infinity } = {}) {
   return { value: { kind, pad, title, url, multiplayer, nickname } };
 }
 
-/** The duo portal: every client sorts the same list and uses the server's random seed in [0, 1). */
-export function pickDuoGame(items, seed) {
-  const list = items.filter((p) => p.multiplayer).sort((a, b) => a.id - b.id);
+/**
+ * Pick a jam game from the community list. Every client sorts the same way and uses the server's
+ * random seed in [0, 1), so two players who step into the portal together land in the same game.
+ * `multiplayerOnly` is what the duo portal needs; alone, any game on the list will do.
+ *
+ * Why alone goes through the list too (14/11): vibejam.com/portal/2026 no longer redirects anywhere.
+ * It answers 200 with a page that only links to the jam's front page, and before that it sent
+ * players to games that are no longer up. Our own list is checked and can be moderated, so it is
+ * the better first choice; the webring stays as the fallback when the list is empty.
+ */
+export function pickJamGame(items, seed, multiplayerOnly = false) {
+  const list = items.filter((p) => p.kind === 'jam' && (!multiplayerOnly || p.multiplayer)).sort((a, b) => a.id - b.id);
   if (!list.length || !(seed >= 0 && seed < 1)) return null;
   return list[Math.floor(seed * list.length)];
 }
+
+/** The duo portal: the same game for everyone who stepped in together. */
+export const pickDuoGame = (items, seed) => pickJamGame(items, seed, true);
