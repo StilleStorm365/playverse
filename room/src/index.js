@@ -15,6 +15,7 @@ import {
   clampCoord, cleanNick, publicPlayer, countMessage, validEmote, partyJoin, partyLeave, goMessages,
   isIdle, nextAlarm, snapshot, flushIn, shouldSetAlarm,
 } from './protocol.js';
+import { runLinkCheck } from './links.js';
 
 const EMPTY_PARTY = { ids: [], endsAt: 0 };
 
@@ -195,4 +196,11 @@ export class Room extends DurableObject {
 
 export default {
   fetch() { return new Response('Not found', { status: 404 }); },
+  // Daily: ask every linked page whether it is still there (room/src/links.js).
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runLinkCheck(env).then(
+      (r) => { if (r.failed || r.dropped.length) console.log('link check', JSON.stringify(r)); },
+      (e) => console.log('link check failed', String(e)),
+    ));
+  },
 };

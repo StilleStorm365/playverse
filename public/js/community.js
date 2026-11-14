@@ -70,3 +70,15 @@ export function pickJamGame(items, seed, multiplayerOnly = false) {
 
 /** The duo portal: the same game for everyone who stepped in together. */
 export const pickDuoGame = (items, seed) => pickJamGame(items, seed, true);
+
+// ---- Link checks (the room Worker asks each linked page once a day) ----
+/** Three days of silence in a row and the link is left out of the list. One bad day is not enough. */
+export const FAILS_TO_DROP = 3;
+
+/** What a check does to a row. `ok` is what the page answered; anything else counts as a failure. */
+export function applyCheck({ fails = 0 } = {}, { ok, status = 0 }, now) {
+  return { fails: ok ? 0 : fails + 1, last_status: status, checked_at: now };
+}
+
+/** A link we have stopped sending players to - shown to the owner, not deleted. */
+export const isDeadLink = (row) => (row?.fails ?? 0) >= FAILS_TO_DROP;

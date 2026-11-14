@@ -5,17 +5,20 @@
 //      { action: "remove", id, token }   (only the creator: token is kept in their browser)
 // No login. Limits (Tommy 13/11): https only, DAILY per person (salted IP hash or creator token),
 // hidden after REPORTS_TO_HIDE distinct reporters, hub portals expire after PORTAL_DAYS.
-import { checkSubmission, DAILY, REPORTS_TO_HIDE, PORTAL_DAYS } from '../../public/js/community.js';
+import { checkSubmission, DAILY, REPORTS_TO_HIDE, PORTAL_DAYS, FAILS_TO_DROP } from '../../public/js/community.js';
 import { json, ipHash, sha256, readJson, loadPublishedHub } from '../../lib/server.js';
 
 const DAY = 24 * 3600 * 1000;
 const TOKEN_RE = /^[A-Za-z0-9_-]{16,64}$/;
 const REPORTS_PER_DAY = 20;
 
+// Links that have been silent FAILS_TO_DROP checks in a row are left out: both the duo portal and
+// a lone player are sent to a game from this list, so a game that has disappeared would send
+// everyone to a dead page. Nothing is deleted - the owner still sees them on /admin.html.
 const list = async (env, now) => (await env.DB.prepare(
   `SELECT id, kind, pad, title, url, multiplayer, nickname FROM portals
-   WHERE hidden = 0 AND expires_at > ? ORDER BY id`,
-).bind(now).all()).results.map((r) => ({ ...r, multiplayer: !!r.multiplayer }));
+   WHERE hidden = 0 AND expires_at > ? AND fails < ? ORDER BY id`,
+).bind(now, FAILS_TO_DROP).all()).results.map((r) => ({ ...r, multiplayer: !!r.multiplayer }));
 
 export async function onRequestGet({ env }) {
   return json({ portals: await list(env, Date.now()) });
