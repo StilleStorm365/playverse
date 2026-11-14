@@ -12,3 +12,13 @@ class_name = "Room"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room"]
+
+# The same D1 as the Pages project: the daily link check writes the result back (src/links.js).
+[[d1_databases]]
+binding = "DB"
+database_name = "playverse"
+database_id = "214f2f74-8e65-4a73-81f7-8404b54f038b"
+
+# 04:17 UTC, a quiet hour. Pages Functions cannot be given a cron, so it lives in this Worker.
+[triggers]
+crons = ["17 4 * * *"]

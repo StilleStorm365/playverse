@@ -17,7 +17,8 @@ async function authorised(request, env) {
 
 const all = async (env) => (await env.DB.prepare(
   `SELECT p.id, p.kind, p.pad, p.title, p.url, p.multiplayer, p.nickname, p.created_at AS createdAt, p.expires_at AS expiresAt,
-          p.hidden, (SELECT COUNT(*) FROM reports r WHERE r.portal_id = p.id) AS reports
+          p.hidden, p.fails, p.checked_at AS checkedAt, p.last_status AS lastStatus,
+          (SELECT COUNT(*) FROM reports r WHERE r.portal_id = p.id) AS reports
    FROM portals p ORDER BY p.id DESC LIMIT 300`,
 ).all()).results;
 
