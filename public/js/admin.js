@@ -1,5 +1,6 @@
 // Owner moderation page: lists every community portal and lets the owner hide, unhide or delete it.
 // The token is kept in sessionStorage only (gone when the tab closes).
+import { isDeadLink } from './community.js';
 const $ = (id) => document.getElementById(id);
 const KEY = 'playverse:admin';
 let token = '';
@@ -29,7 +30,15 @@ function render({ portals, now }) {
     if (p.multiplayer && p.kind === 'portal') kind.append(el('div', 'multiplayer', 'url'));
     const by = el('td'); by.append(el('div', p.nickname), el('div', p.createdAt ? new Date(p.createdAt).toLocaleString() : 'built in', 'url'));
     const reports = el('td'); reports.append(el('span', String(p.reports), p.reports ? 'tag bad' : 'tag'));
-    const status = el('td', p.hidden ? 'hidden' : expired ? 'expired' : 'live');
+    // The daily check (room Worker, 04:17 UTC) writes fails/checkedAt back; FAILS_TO_DROP in a row
+    // and the link is left out of the list everyone sees.
+    const dead = isDeadLink(p);
+    const status = el('td', p.hidden ? 'hidden' : expired ? 'expired' : dead ? 'link dead' : 'live');
+    if (p.checkedAt) {
+      const when = new Date(p.checkedAt).toLocaleString();
+      const said = p.lastStatus ? `answered ${p.lastStatus}` : 'no answer';
+      status.append(el('div', p.fails ? `${said} · ${p.fails} in a row · checked ${when}` : `checked ${when}`, p.fails ? 'tag bad' : 'url'));
+    }
     const c = checks.get(p.id);
     if (c) status.append(el('div', c.ok ? `link ok (${c.status})` : c.error || `link failed (${c.status})`, c.ok ? 'url' : 'tag bad'));
     const actions = el('td');

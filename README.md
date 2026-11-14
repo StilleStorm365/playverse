@@ -133,6 +133,18 @@ picks the same game from the community's multiplayer list (`pickDuoGame`), with 
 parameters; a single player goes to Vibe Jam's random redirector as before. Whether two players meet
 inside the game depends on the game (games with one shared world, like fly.pieter.com, work).
 
+## The daily link check
+Both the duo portal and a lone player are sent to a game from the community list, so a game that
+quietly disappears would send everyone to a dead page. The Worker `playverse-room` has a cron
+trigger (04:17 UTC) and `room/src/links.js` asks every visible link once, writing `checked_at`,
+`last_status` and `fails` back to D1. A link is not dropped the first time it is silent - a game can
+be down for an hour. After `FAILS_TO_DROP` (3) checks in a row with no good answer it is left out of
+`GET /api/portals`; one good answer puts it straight back. Nothing is deleted, and `/admin.html`
+shows the last answer, the run of failures and `link dead` for the ones that are out. The rule is
+`applyCheck`/`isDeadLink` in `public/js/community.js`, covered by tests. The cron lives in the room
+Worker because Pages Functions cannot be given one; the owner's manual **Check links** button on the
+admin page is unchanged.
+
 ## Community portals
 `GET /api/portals` lists them; `POST /api/portals` with `action: create | report | remove`.
 - `kind: "portal"` sits on an empty pad in the hub (`pads` in the hub level); `kind: "jam"` only adds a
