@@ -3,6 +3,8 @@
 A shared 2D plaza of portals to browser games. Walk around with other players, build a portal to your own game, or jump into Vibe Jam games together. Separate from Little Copenhagen.
 
 Live: https://playverse-2kf.pages.dev/
+Code: https://github.com/StilleStorm365/playverse (public since 2026-11-20, so CI runs free;
+the admin token and every other secret live in Cloudflare and in a git-ignored local file)
 
 ## Status
 Version 1 in progress: a small 2D level race where each level is a JSON file, a nickname-only leaderboard per level and version, an English UI, a 2D hub with portals, and proposals from the owner only, reviewed as pull requests.
