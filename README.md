@@ -78,7 +78,7 @@ server) as see-through runners that start when you start. `G` toggles them.
 The hub has a teal **Vibe Jam ↗** portal. Entering it sends the player to
 `https://vibejam.com/portal/2026` with `portal=true`, `username` (your nickname, if set), `color`,
 `speed` and `ref` (this site), following the [Cursor Vibe Jam 2026 portal guide](https://vibejam.com/2026#portals).
-Players who arrive with `?portal=true` land in the hub at once (no start screen). If `ref` is a
+Players who arrive with `?portal=true` land in the hub at once (no start screen, and no first-visit card either - that was still stopping arrivals until 20/11; the rule is `showWelcome` in `js/community.js`). If `ref` is a
 valid http(s) URL or host, a teal return portal appears next to the start and sends them back with
 the parameters they came with. A valid `username` becomes the nickname if none is set. All incoming
 parameters are untrusted: unknown ones are dropped, `ref` must be http(s), and nothing is put into

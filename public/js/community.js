@@ -82,3 +82,10 @@ export function applyCheck({ fails = 0 } = {}, { ok, status = 0 }, now) {
 
 /** A link we have stopped sending players to - shown to the owner, not deleted. */
 export const isDeadLink = (row) => (row?.fails ?? 0) >= FAILS_TO_DROP;
+
+/**
+ * The first-visit card. Someone arriving through a portal from another game must land and be able
+ * to move at once (the jam's portal rule), and their name came with them in the link, so the card
+ * waits for a later ordinary visit.
+ */
+export const showWelcome = (seenBefore, arrival) => !seenBefore && !arrival;

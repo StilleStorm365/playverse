@@ -11,7 +11,7 @@ import { loadPublished, loadLevel } from './levels.js';
 import { getBest, getNickname, setNickname, getOwnerToken, getMine, addMine, getSeenWelcome, setSeenWelcome } from './store.js';
 import { fetchTop } from './leaderboard.js';
 import { RINGS, parseArrival, exitUrl, returnUrl, gameUrl } from './webring.js';
-import { NICK_RE, blocked, cleanUrl, pickJamGame, DAILY, PORTAL_DAYS, REPORTS_TO_HIDE } from './community.js';
+import { NICK_RE, blocked, cleanUrl, pickJamGame, showWelcome, DAILY, PORTAL_DAYS, REPORTS_TO_HIDE } from './community.js';
 import { connectPresence, plazaStatus } from './presence.js';
 
 const $ = (id) => document.getElementById(id);
@@ -297,7 +297,10 @@ async function main() {
     return b;
   }));
   // First visit: one short card about what this place is. Never shown again on this device.
-  if (!getSeenWelcome()) {
+  // Not for someone flying in from another game: the jam's portal rule is that an arriving player
+  // lands and can move at once, and their name came with them in the link. They get the card on a
+  // later ordinary visit instead (measured 20/11: the card did stop arrivals).
+  if (showWelcome(getSeenWelcome(), arrival)) {
     $('welcome').hidden = false;
     $('w-go').focus();
   }
